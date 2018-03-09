@@ -30,6 +30,7 @@ uint16_t solarVoltage(void);
 boolean solarCharging(void);
 void wait (uint32_t);
 int16_t internalTemp(void);
+uint16_t freeRam(void);
 
 // fona
 void fonaFlush(void);
@@ -75,7 +76,6 @@ extern uint16_t file_size;
 extern uint8_t error;
 
 // test
-int freeRam(void);
 void ram(void);
 void test(void);
 void testSMS(void);

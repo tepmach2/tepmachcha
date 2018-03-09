@@ -68,6 +68,19 @@ uint16_t batteryRead(void)
 // CHARGING 550-   180-  ( vbatt(3.6v+) / (10M + 2M)/2M ) => 0.6v
 // SLEEPING 900+   220+  ( vbatt ) => 3.6v -> 4.2v
 //
+boolean solarCharging(void)
+{
+    uint16_t solar;
+
+    solar = solarVoltage();
+    // despite calcs above, measurements show voltage of ~0.51 when charging
+    if ( solar > 160 && solar <= 220 )    // charging, 3.3v analogue ref
+    {
+       return true;
+    }
+    return false;
+}
+
 uint16_t solarVoltage(void)
 {
     uint16_t solar;
@@ -81,18 +94,6 @@ uint16_t solarVoltage(void)
     Serial.println (solar);
 
     return solar;
-}
-
-boolean solarCharging(void)
-{
-    uint16_t solar;
-
-    solar = solarVoltage();
-    if ( solar > 180 && solar <= 220 )    // charging, 3.3v analogue ref
-    {
-       return true;
-    }
-    return false;
 }
 
 // read temperature of the atmega328 itself
@@ -125,4 +126,14 @@ int16_t internalTemp(void)
 
   // offset ~324.31, scale by 1/1.22 to give C
   return (wADC - (324*64) ) / 78;    // 64/78 ~= 1/1.22
+}
+
+
+uint16_t freeRam (void) {
+  extern uint16_t __heap_start;
+  extern int *__brkval; 
+  //extern int  __bss_end;
+  int v; 
+  return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__heap_start : (uint16_t) __brkval); 
+  //return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__bss_end : (int) __brkval); 
 }
