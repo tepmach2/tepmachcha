@@ -211,7 +211,6 @@ void smsDeleteAll(void)
 char *parseFilename(char *b)
 {
     uint8_t i;
-
     DEBUG_RAM
 
     while (*b == ' ') b++; // skip spaces
@@ -232,7 +231,6 @@ void smsParse(int8_t NumSMS)
 		char smsBuffer[SIZEOF_SMS];
 		char smsSender[SIZEOF_SMS_SENDER];
 		uint16_t smsLen;
-
     DEBUG_RAM
 
     fona.readSMS (NumSMS, smsBuffer, sizeof(smsBuffer)-1, &smsLen);  // retrieve the most recent one

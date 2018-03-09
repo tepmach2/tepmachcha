@@ -166,18 +166,20 @@ void upload(int16_t streamHeight, boolean resetClock)
   uint8_t status;
   boolean charging;
   uint16_t voltage;
+  uint16_t solarV;
+
+  charging = solarCharging();
+  voltage = batteryRead();
+  solarV = solarVoltage();
 
   if (fonaOn())
   {
-    charging = solarCharging();
-    voltage = fonaBattery();
 
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
-
-    dweetPost(streamHeight, solarVoltage(), voltage);
+    status &= dweetPost(streamHeight, solarV, voltage);
 
     // reset fona if upload failed, so SMS works
     if (!status)
@@ -203,13 +205,13 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;
     uint16_t response_length = 0;
-    char post_data[240];
+    char post_data[200];
 
     DEBUG_RAM
 
     // Construct the body of the POST request:
     sprintf_P (post_data,
-      (prog_char *)F("api_token=" EWSTOKEN_ID "&data={\"sensorId\":\"" EWSDEVICE_ID "\",\"version\":\"" VERSION "\",\"streamHeight\":\"%d\",\"charging\":\"%d\",\"voltage\":\"%d\",\"timestamp\":\"%d-%d-%dT%d:%d:%d.000Z\"}\r\n"),
+      (prog_char *)F("api_token=" EWSTOKEN_ID "&data={\"sensorId\":\"" EWSDEVICE_ID "\",\"streamHeight\":\"%d\",\"charging\":\"%d\",\"voltage\":\"%d\",\"timestamp\":\"%d-%d-%dT%d:%d:%d.000Z\"}\r\n"),
         streamHeight,
         solar,
         voltage,
@@ -325,7 +327,7 @@ boolean dweetPost (int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
     uint16_t statusCode;
     uint16_t dataLen;
-    char postData[200];
+    char postData[120];
     DEBUG_RAM
 
     // HTTP POST headers
@@ -373,5 +375,5 @@ boolean dweetPost (int16_t streamHeight, uint16_t solar, uint16_t voltage)
     fonaFlush();
     fona.HTTP_POST_end();
 
-    return (statusCode == 201);
+    return (statusCode == 204);
 }
