@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.3"
+#define VERSION "2.4"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration
@@ -23,7 +23,8 @@
 #define RTCINTA 0    //  RTC INTA
 #define RTCINTB 1    //  RTC INTB
 
-/* carrier 1
+// tepmachcha DAI
+#ifdef SHIELDv1
 #define RTCINT1  2  //  Onboard Stalker RTC pin
 #define FONA_RST 3  //  FONA RST pin
 #define SD_POWER 4  //  optional power to SD card
@@ -38,9 +39,10 @@
 #define FONA_PS  A3 //  FONA power status pin
 #define SOLAR    A6 //  Solar charge state
 #define BATT     A7 //  Battery level
-*/
+#endif
 
-// carrier 2
+// tepmachcha v2
+#ifdef SHIELDv2
 #define RTCINT1  2  //  Onboard Stalker RTC pin
 #define WATCHDOG 3  //  (RTCINT2) low to reset
 #define FONA_RST A1 //  FONA RST pin
@@ -50,7 +52,6 @@
 #define PING     A0 //  Sonar ping pin
 #define FONA_TX  7  //  UART pin from FONA
 #define RANGE    8  //  Sonar range pin -- pull low to turn off sonar
-
 #define BUS_PWR  9  //  Peripheral bus power for 3.1 comment out for 3.0
 
 #define FONA_RTS na //  FONA RTS pin - check
@@ -58,6 +59,7 @@
 #define FONA_PS  A3 //  FONA power status pin
 #define SOLAR    A6 //  Solar charge state
 #define BATT     A7 //  Battery level
+#endif
 
 #define DEBUG_RAM     ram();
 

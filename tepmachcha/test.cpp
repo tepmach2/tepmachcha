@@ -135,8 +135,8 @@ void test(void)
       break;
     }
     case 'd': {
-      //dmisPost(takeReading(), solarCharging(), fonaBattery());
-      ews1294Post(takeReading(), solarCharging(), fonaBattery());
+      //dmisPost(sonarRead(), solarCharging(), fonaBattery());
+      ews1294Post(sonarRead(), solarCharging(), fonaBattery());
       break;
     }
     case 'o': {
@@ -195,7 +195,7 @@ void test(void)
       break;
     }
     case 't': {
-      takeReading();
+      sonarRead();
       break;
     }
     case 'G': {
@@ -322,7 +322,7 @@ void test(void)
       break;
     }
     case 'u': {
-      upload();
+      upload(555, true);
       break;
     }
   }

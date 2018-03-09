@@ -1,5 +1,7 @@
 // Maxbotix Sonar
 
+#define SAMPLES 11
+
 #include "tepmachcha.h"
 
 // insertion sort: https://en.wikipedia.org/wiki/Insertion_sort
@@ -47,24 +49,48 @@ int16_t mode (int16_t *sample, uint8_t n)
 }
 
 
-#define SAMPLES 11
-int16_t takeReading (void)
+// Read Maxbotix MB7363 samples in free-run/filtered mode.
+// Don't call this more than 6Hz due to min. 160ms sonar cycle time
+void sonarSamples(int16_t sample[])
 {
-    int16_t sample[SAMPLES];
+    digitalWrite (RANGE, HIGH);  // sonar on
+    wait (100);
 
-    digitalWrite (RANGE, HIGH);           //  sonar on
-    wait (1000);
+    // wait for and discard first sample (160ms)
+    pulseIn (PING, HIGH);
 
-    // read samples into array
+    // read subsequent (filtered) samples into array
     for (uint8_t sampleCount = 0; sampleCount < SAMPLES; sampleCount++)
     {
+      // After the PWM pulse, the sonar transmits the reading
+      // on the serial pin, which takes ~10ms
+      wait (10);
+
+      // 1 µs pulse = 1mm distance
       sample[sampleCount] = pulseIn (PING, HIGH);
+
+      // ~16 chars at 57600baud ~= 3ms delay
       Serial.print (F("Sample "));
       Serial.print (sampleCount);
       Serial.print (F(": "));
       Serial.println (sample[sampleCount]);
-      wait (50);
     }
+
+    digitalWrite (RANGE, LOW);   // sonar off
+}
+
+
+// One failure mode of the sonar -- if, for example, it is not getting enough power
+// is to return the minimum distance the sonar can detect; 50cm for 10m sonars
+// or 30cm for 5m.
+// This is also waht happens if something blocks the unit.
+
+int16_t sonarRead (void)
+{
+    int16_t sample[SAMPLES];
+
+    // read from sensor into sample array
+		sonarSamples (sample);
 
     // sort the samples
 		sort (sample, SAMPLES);
@@ -72,8 +98,8 @@ int16_t takeReading (void)
     // take the mode, or median
     int16_t sampleMode = mode (sample, SAMPLES);
 
-    // offset by programmed stream-bed height
-    int16_t streamHeight = (SENSOR_HEIGHT - (sampleMode / 10)); //  1 µs pulse = 1mm distance
+    // convert to cm and offset by hardcoded stream-bed height
+    int16_t streamHeight = (SENSOR_HEIGHT - (sampleMode / 10));
 
     Serial.print (F("Surface distance from sensor is "));
     Serial.print (sampleMode);
@@ -82,6 +108,5 @@ int16_t takeReading (void)
     Serial.print (streamHeight);
     Serial.println (F("cm."));
 
-    digitalWrite (RANGE, LOW);           //  sonar off
     return streamHeight;
 }

@@ -3,6 +3,11 @@
 
 #ifndef SECRETS
 
+#define STALKERv30
+#define STALKERv31
+#define SHIELDv1
+#define SHIELDv2
+
 #define TESTPHONE     "+85512345678"
 #define APN           "FONAapn"
 #define DMISSENSOR_ID "DMIS sensor id"

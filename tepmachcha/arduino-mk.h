@@ -7,22 +7,26 @@
  * there may be a new arduino-preproc command that uses ctags - investigate
  */
 #include <Arduino.h>
-#include "secrets.h" // override config.h template defs
+//#include "secrets/btb1.h" // override config.h template defs
+//#include "secrets/btb2.h" // override config.h template defs
+//#include "secrets/bmc.h"  // override config.h template defs
+//#include "secrets/kcr1.h" // override config.h template defs
+#include "secrets/pp1.h" // override config.h template defs
 
 // tepmachcha
 void setup(void);
 void loop(void);
-void upload(void);
+void upload(int16_t, boolean);
 boolean dmisPost(int, boolean,  uint16_t);
 boolean ews1294Post (int, boolean, uint16_t);
-boolean dweetPost (int, boolean, uint16_t);
-
+boolean dweetPost (int, uint16_t, uint16_t);
 
 // sonar
-int16_t takeReading(void);
+int16_t sonarRead(void);
 
 // stalker
 uint16_t batteryRead(void);
+uint16_t solarVoltage(void);
 boolean solarCharging(void);
 void wait (uint32_t);
 int16_t internalTemp(void);

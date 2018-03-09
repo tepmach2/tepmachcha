@@ -108,7 +108,7 @@ boolean fonaGPRSOn(void) {
   {
     for (uint8_t attempt = 1; attempt < 7; attempt++)
     {
-      Serial.print (F("Turning GPRS on, attempt ")); Serial.println(attempt);
+      Serial.print (F("GPRS -> on, attempt ")); Serial.println(attempt);
       fona.enableGPRS (true);
 
       if (fona.GPRSstate() == 1)
@@ -130,13 +130,16 @@ boolean fonaGPRSOn(void) {
 
 
 void fonaGPRSOff(void) {
-  Serial.print (F("Turning GPRS off: "));
-  if (fona.GPRSstate() == 1)
+  Serial.print (F("GPRS -> off: "));
+  if (digitalRead (FONA_PS) == HIGH) 
   {
-    if (!fona.enableGPRS(false))
+    if (fona.GPRSstate() == 1)
     {
-      Serial.println (F("failed"));
-      return;
+      if (!fona.enableGPRS(false))
+      {
+        Serial.println (F("failed"));
+        return;
+      }
     }
   }
   Serial.println (F("done"));

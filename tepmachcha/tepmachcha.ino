@@ -1,7 +1,7 @@
 #include "tepmachcha.h"
 
-boolean freshboot = true; // Newly rebooted
-Sleep sleep;              //  Create the sleep object
+//boolean freshboot = true; // Newly rebooted
+Sleep sleep;              // Create the sleep object
 
 static void rtcIRQ (void)
 {
@@ -29,7 +29,7 @@ void setup (void)
 		pinMode (FONA_KEY, OUTPUT);
 		pinMode (FONA_RX, OUTPUT);
 		pinMode (SD_POWER, OUTPUT);
-#ifdef BUS_PWR
+#ifdef STALKERv31
 		pinMode (BUS_PWR, OUTPUT);
 #endif
 
@@ -37,7 +37,7 @@ void setup (void)
 		digitalWrite (SD_POWER, HIGH);       // SD card off
     digitalWrite (BEEPIN, LOW);          // XBee on
 		digitalWrite (FONA_KEY, HIGH);       // Initial state for key pin
-#ifdef BUS_PWR
+#ifdef STALKERv31
     digitalWrite (BUS_PWR, HIGH);        // Peripheral bus on
 #endif
 
@@ -59,7 +59,7 @@ void setup (void)
 				Serial.flush();
 				digitalWrite (BEEPIN, HIGH);      //  Make sure XBee is powered off
 				digitalWrite (RANGE, LOW);        //  Make sure sonar is off
-#ifdef BUS_PWR
+#ifdef STALKERv31
         //digitalWrite (BUS_PWR, LOW);   //  Peripheral bus off
 #endif
 				RTC.enableInterrupts (EveryHour); //  We'll wake up once an hour
@@ -97,10 +97,12 @@ void setup (void)
 }
 
 
+// This runs every minute, triggered by RTC interrupt
 void loop (void)
 {
+    boolean resetClock = false;
 
-#ifdef BUS_PWR
+#ifdef STALKERv31
     //digitalWrite (BUS_PWR, HIGH);           //  Peripheral bus on
     //wait(500);
 #endif
@@ -112,9 +114,14 @@ void loop (void)
 		Serial.println (now.minute());
 
     // The RTC drifts more than the datasheet says, so we
-    // reset the time every day at 1AM, by soft reboot
+    // reset the time every day at midnight.
+    if (now.hour() == 0 && now.minute() == 0)
+    {
+      resetClock = true;
+    }
     /*
-    if (!freshboot && now.hour() == 1 && now.minute() == 0)
+    // by soft reboot
+    if (!freshboot && now.hour() == 0 && now.minute() == 0)
     {
       Serial.println(F("reboot"));
       WDTCSR = _BV(WDE);  // enable watchdog timer
@@ -124,17 +131,27 @@ void loop (void)
     }
     */
 
-    XBee();
-
-		if (now.minute() % INTERVAL == 0)   //  If it is time to send a scheduled reading...
+    // Check if it is time to send a scheduled reading
+		if (now.minute() % INTERVAL == 0)
 		{
-				upload ();
+      int16_t streamHeight = 0;
+
+      // take a sonar reading, retry if it's obviously garbage
+      for (uint8_t tries = 3; streamHeight <= 0 && tries; --tries)
+      {
+        streamHeight = sonarRead();
+        delay(1000);
+      }
+
+      upload (streamHeight, resetClock);
     }
+
+    XBee();
 
 		Serial.println(F("sleeping"));
 		Serial.flush();                         //  Flush any output before sleep
 
-#ifdef BUS_PWR
+#ifdef STALKERv31
     //digitalWrite (BUS_PWR, LOW);           //  Peripheral bus off
 #endif
 
@@ -144,44 +161,25 @@ void loop (void)
 }
 
 
-void upload()
+void upload(int16_t streamHeight, boolean resetClock)
 {
-  int16_t streamHeight;
   uint8_t status;
   boolean charging;
   uint16_t voltage;
 
   if (fonaOn())
   {
-
-    // The RTC drifts more than the datasheet says, so we
-    // reset the time every day at midnight
-    if (now.hour() == 0 && now.minute() == 0)
-    {
-       clockSet();
-    }
-
-    /*  One failure mode of the sonar -- if, for example, it is not getting enough power -- 
-     *	is to return the minimum distance the sonar can detect; in the case of the 10m sonars
-     *	this is 50cm. This is also what would happen if something were to block the unit -- a
-     *	plastic bag that blew onto the enclosure, for example.
-     *  We send the result anyway, as the alternative is send nothing
-     */
-    if ((streamHeight = takeReading()) <= 0)
-    {
-      streamHeight = takeReading();     // take a second reading
-    }
-
     charging = solarCharging();
     voltage = fonaBattery();
 
-    dweetPost(streamHeight, solarVoltage(), voltage);
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
 
-    // reset fona if upload failed
+    dweetPost(streamHeight, solarVoltage(), voltage);
+
+    // reset fona if upload failed, so SMS works
     if (!status)
     {
       fonaOff();
@@ -192,6 +190,10 @@ void upload()
     // process SMS messages
     smsCheck();
 
+    if (resetClock)
+    {
+      clockSet();
+    }
   }
   fonaOff();
 }
@@ -319,7 +321,7 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 }
 
 
-boolean dweetPost (int16_t streamHeight, boolean solar, uint16_t voltage)
+boolean dweetPost (int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
     uint16_t statusCode;
     uint16_t dataLen;
@@ -336,7 +338,7 @@ boolean dweetPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
     // json data
     sprintf_P(postData,
-      (prog_char*)F("{\"streamHeight\":%d,\"charging\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+      (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
         streamHeight,
         solar,
         voltage,
