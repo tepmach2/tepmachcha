@@ -233,6 +233,8 @@ void smsParse(int8_t NumSMS)
 		char smsSender[SIZEOF_SMS_SENDER];
 		uint16_t smsLen;
 
+    DEBUG_RAM
+
     fona.readSMS (NumSMS, smsBuffer, sizeof(smsBuffer)-1, &smsLen);  // retrieve the most recent one
     wait (500);                                                      // required delay
 
@@ -273,10 +275,10 @@ void smsParse(int8_t NumSMS)
 
         if ( !status )
         {
-          sprintf_P(smsBuffer, (prog_char *)F("download successful: %s (%d)"), \
+          sprintf_P(smsBuffer, (prog_char *)F("d/l success: %s (%d)"), \
             file_name, file_size);
         } else {
-          sprintf_P(smsBuffer, (prog_char *)F("download failed: %s (%d) error: %d"), \
+          sprintf_P(smsBuffer, (prog_char *)F("d/l failed: %s (%d) error: %d"), \
             file_name, file_size, error);
         }
         fona.sendSMS(smsSender, smsBuffer);  // return file stat, status
@@ -298,8 +300,6 @@ void smsParse(int8_t NumSMS)
         Serial.println(F("PING"));
         sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
           batteryRead(), solarCharging(), sonarRead());
-        //sprintf_P(smsBuffer, (prog_char *)F("%p v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          //F(DEVICE), batteryRead(), solarCharging(), sonarRead());
         fona.sendSMS(smsSender, smsBuffer);
     }
 
