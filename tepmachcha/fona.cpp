@@ -271,7 +271,7 @@ void smsParse(int8_t NumSMS)
           status = firmwareGet();
         }
 
-        if ( !status )
+        if (status)
         {
           sprintf_P(smsBuffer, (prog_char *)F("d/l success: %s (%d)"), \
             file_name, file_size);
