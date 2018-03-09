@@ -175,7 +175,7 @@ void upload()
     charging = solarCharging();
     voltage = fonaBattery();
 
-    dweetPost(streamHeight, charging, voltage);
+    dweetPost(streamHeight, solarVoltage(), voltage);
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more

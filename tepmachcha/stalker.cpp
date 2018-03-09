@@ -68,7 +68,7 @@ uint16_t batteryRead(void)
 // CHARGING 550-   180-  ( vbatt(3.6v+) / (10M + 2M)/2M ) => 0.6v
 // SLEEPING 900+   220+  ( vbatt ) => 3.6v -> 4.2v
 //
-boolean solarCharging(void)
+uint16_t solarVoltage(void)
 {
     uint16_t solar;
 
@@ -79,6 +79,15 @@ boolean solarCharging(void)
 
     Serial.print (F("solar analog: "));
     Serial.println (solar);
+
+    return solar;
+}
+
+boolean solarCharging(void)
+{
+    uint16_t solar;
+
+    solar = solarVoltage();
     if ( solar > 180 && solar <= 220 )    // charging, 3.3v analogue ref
     {
        return true;
