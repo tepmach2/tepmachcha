@@ -268,8 +268,14 @@ void smsParse(int8_t NumSMS)
           status = firmwareGet();
         }
 
-        sprintf_P(smsBuffer, (prog_char *)F("ftp %s (%d) ok:%d, err:%d, crc:%d"), \
-          file_name, file_size, status, error, 0);
+        if ( !status )
+        {
+          sprintf_P(smsBuffer, (prog_char *)F("download successful: %s (%d)"), \
+            file_name, file_size);
+        } else {
+          sprintf_P(smsBuffer, (prog_char *)F("download failed: %s (%d) error: %d"), \
+            file_name, file_size, error);
+        }
         fona.sendSMS(smsSender, smsBuffer);  // return file stat, status
     }
 
@@ -288,9 +294,9 @@ void smsParse(int8_t NumSMS)
     {
         Serial.println(F("PING"));
         sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          batteryRead(), solarCharging(), takeReading());
+          batteryRead(), solarCharging(), sonarRead());
         //sprintf_P(smsBuffer, (prog_char *)F("%p v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          //F(DEVICE), batteryRead(), solarCharging(), takeReading());
+          //F(DEVICE), batteryRead(), solarCharging(), sonarRead());
         fona.sendSMS(smsSender, smsBuffer);
     }
 
