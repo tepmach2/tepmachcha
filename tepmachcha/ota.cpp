@@ -302,36 +302,35 @@ boolean ftpGet(void)
 
 boolean firmwareGet(void)
 { 
-  // Ensure GPRS is on
-  if (fona.GPRSstate() != 1)
-  {
-    Serial.println(F("no GPRS"));
-    return false;
-  }
-
   Serial.println(F("Fetching FW"));
 
   if ( ftpGet() )
   {
     for (uint8_t tries=3 ;tries;tries--)
     {
-      if ( fileInit() && fileOpenWrite() )
+      if ( fileInit() )
       {
-        if (fonaFileCopy(file_size))
+        if ( fileOpenWrite() )
         {
-          fileClose();
-          return true;
+          if (fonaFileCopy(file_size))
+          {
+            fileClose();
+            error = 0;
+            return true;
+          } else {
+            error = 4;
+          }
         } else {
           error = 3;
         }
       } else {
         error = 2;
       }
+      fileClose();
     }
   } else {
     error = 1;
   }
-  fileClose();
   Serial.println(F("fona copy failed"));
   return false;
 }

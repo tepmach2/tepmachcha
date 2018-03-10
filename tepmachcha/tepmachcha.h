@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.4"
+#define VERSION "2.5"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration
@@ -75,9 +75,6 @@
 #define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
 #define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
 #define EEPROM_FILENAME_ADDR (E2END - 1)
-
-#define FOTA 0
-#define STATUS 1
 
 // tepmachcha
 extern const char DEVICE_STR[] PROGMEM;

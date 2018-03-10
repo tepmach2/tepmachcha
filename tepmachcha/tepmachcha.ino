@@ -1,6 +1,5 @@
 #include "tepmachcha.h"
 
-
 const char DEVICE_STR[] PROGMEM = DEVICE;
 
 //boolean freshboot = true; // Newly rebooted
@@ -190,7 +189,7 @@ void upload(int16_t streamHeight, boolean resetClock)
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
-    status &= dweetPost(STATUS, streamHeight, solarV, voltage);
+    status &= dweetPostStatus(streamHeight, solarV, voltage);
 
     // reset fona if upload failed, so SMS works
     if (!status)
@@ -238,16 +237,15 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     // Send the POST request we have constructed
     if (fona.HTTP_POST_start ("ews1294.info/api/v1/sensorapi",
                               F("application/x-www-form-urlencoded"),
-                              (uint8_t *)post_data, strlen(post_data),
+                              (uint8_t *)post_data,
+                              strlen(post_data),
                               &status_code,
                               &response_length))
+    // flush response
+    while (response_length > 0)
     {
-      // flush response
-      while (response_length > 0)
-      {
-         fonaFlush();
-         response_length--;
-      }
+       fonaFlush();
+       response_length--;
     }
 
     fona.HTTP_POST_end();
@@ -333,11 +331,43 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 }
 
 
-boolean dweetPost (uint8_t type, int16_t streamHeight, uint16_t solar, uint16_t voltage)
+boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
+{
+    char json[120];
+
+    sprintf_P(json,
+      (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+        streamHeight,
+        solar,
+        voltage,
+        millis(),
+        internalTemp(),
+        freeRam());
+    //dweetPost(F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), content);
+    dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
+}
+
+boolean dweetPostFota(boolean status)
+{
+    char json[80];
+
+    sprintf_P(json,
+      (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
+        file_name,
+        file_size,
+        status,
+        error);
+    //dweetPost(F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "-FOTA\""), content);
+    dweetPost((prog_char*)F(DWEETDEVICE_ID "-FOTA"), json);
+}
+
+
+//boolean dweetPost (const __FlashStringHelper *endpoint, char *postData)
+boolean dweetPost (prog_char *endpoint, char *postData)
 {
     uint16_t statusCode;
     uint16_t dataLen;
-    char postData[120];
+    char url[60];
     DEBUG_RAM
 
     // HTTP POST headers
@@ -346,34 +376,12 @@ boolean dweetPost (uint8_t type, int16_t streamHeight, uint16_t solar, uint16_t 
     fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
+    //fona.sendCheckReply (endpoint, OK);
+
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/%S"), endpoint);
+    fona.sendCheckReply (url, OK);
 
     // json data
-    switch (type)
-    {
-      case FOTA:
-          fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "-FOTA\""), OK);
-          sprintf_P(postData,
-            (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
-              file_name,
-              file_size,
-              error,
-              error);
-          break;
-      case STATUS:
-
-          fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), OK);
-          sprintf_P(postData,
-            (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
-              streamHeight,
-              solar,
-              voltage,
-              millis(),
-              internalTemp(),
-              freeRam());
-          break;
-    }
-
-
     int s = strlen(postData);
 
     // tell fona to receive data, and how much

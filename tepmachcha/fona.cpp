@@ -273,7 +273,7 @@ void smsParse(int8_t NumSMS)
           status = firmwareGet();
         }
 
-        dweetPost(FOTA, 0, 0, 0);
+        dweetPostFota(status);
 
         /*
         if (status)
@@ -302,11 +302,10 @@ void smsParse(int8_t NumSMS)
     if (strcmp_P(smsBuffer, (prog_char*)F(PINGPASSWORD)) == 0)        //  PING password...
     {
         Serial.println(F("PING"));
-        dweetPost(FOTA, 0, 0, 0);
+        dweetPostFota(true);
 
         //sprintf_P(smsBuffer, DEVICE_STR),
         //sprintf_P(smsBuffer + sizeof(DEVICE), (prog_char *)F(" v:%d c:%d h:%d"),
-        //sprintf_P(smsBuffer + 30, (prog_char *)F(" v:%d c:%d h:%d"),
           //batteryRead(), solarCharging(), sonarRead());
         //sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
           //batteryRead(), solarCharging(), sonarRead());
