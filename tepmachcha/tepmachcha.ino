@@ -1,5 +1,8 @@
 #include "tepmachcha.h"
 
+
+const char DEVICE_STR[] PROGMEM = DEVICE;
+
 //boolean freshboot = true; // Newly rebooted
 Sleep sleep;              // Create the sleep object
 
@@ -17,7 +20,9 @@ void setup (void)
 		Serial.begin (57600); // Begin debug serial
     fonaSerial.begin (4800); //  Open a serial interface to FONA
 
-		Serial.println (F(DEVICE));
+		//Serial.println (F(DEVICE));
+		//Serial.println ((prog_char *)DEVICE_STR);
+		Serial.println ((__FlashStringHelper*)DEVICE_STR);
 
 		Serial.print (F("Battery: "));
 		Serial.print (batteryRead());
@@ -172,6 +177,12 @@ void upload(int16_t streamHeight, boolean resetClock)
   voltage = batteryRead();
   solarV = solarVoltage();
 
+  Serial.print (F("Battery: "));
+  Serial.print (voltage);
+  Serial.println (F("mV"));
+  Serial.print (F("Solar: "));
+  Serial.print (solarV);
+
   if (fonaOn())
   {
 
@@ -179,7 +190,7 @@ void upload(int16_t streamHeight, boolean resetClock)
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
-    status &= dweetPost(streamHeight, solarV, voltage);
+    status &= dweetPost(STATUS, streamHeight, solarV, voltage);
 
     // reset fona if upload failed, so SMS works
     if (!status)
@@ -206,7 +217,6 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     uint16_t status_code = 0;
     uint16_t response_length = 0;
     char post_data[200];
-
     DEBUG_RAM
 
     // Construct the body of the POST request:
@@ -323,7 +333,7 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 }
 
 
-boolean dweetPost (int16_t streamHeight, uint16_t solar, uint16_t voltage)
+boolean dweetPost (uint8_t type, int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
     uint16_t statusCode;
     uint16_t dataLen;
@@ -333,20 +343,37 @@ boolean dweetPost (int16_t streamHeight, uint16_t solar, uint16_t voltage)
     // HTTP POST headers
     fona.sendCheckReply (F("AT+HTTPINIT"), OK);
     fona.sendCheckReply (F("AT+HTTPSSL=1"), OK);   // SSL required
-    fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
 
     // json data
-    sprintf_P(postData,
-      (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
-        streamHeight,
-        solar,
-        voltage,
-        millis(),
-        internalTemp(),
-        freeRam());
+    switch (type)
+    {
+      case FOTA:
+          fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "-FOTA\""), OK);
+          sprintf_P(postData,
+            (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
+              file_name,
+              file_size,
+              error,
+              error);
+          break;
+      case STATUS:
+
+          fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), OK);
+          sprintf_P(postData,
+            (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+              streamHeight,
+              solar,
+              voltage,
+              millis(),
+              internalTemp(),
+              freeRam());
+          break;
+    }
+
+
     int s = strlen(postData);
 
     // tell fona to receive data, and how much

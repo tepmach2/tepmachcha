@@ -1,5 +1,7 @@
 #include "tepmachcha.h"
 
+const char OK_STRING[] PROGMEM = "OK";
+
 SoftwareSerial fonaSerial = SoftwareSerial (FONA_TX, FONA_RX);
 Adafruit_FONA fona = Adafruit_FONA (FONA_RST);
 
@@ -271,6 +273,9 @@ void smsParse(int8_t NumSMS)
           status = firmwareGet();
         }
 
+        dweetPost(FOTA, 0, 0, 0);
+
+        /*
         if (status)
         {
           sprintf_P(smsBuffer, (prog_char *)F("d/l success: %s (%d)"), \
@@ -280,12 +285,13 @@ void smsParse(int8_t NumSMS)
             file_name, file_size, error);
         }
         fona.sendSMS(smsSender, smsBuffer);  // return file stat, status
+        */
     }
 
     // FLASHPASSWD <filename>
     if (strncmp_P(smsBuffer, (prog_char*)F(FLASHPASSWORD), sizeof(FLASHPASSWORD)-1) == 0) //  FOTA password...
     {
-        Serial.println(F("Flash"));
+        Serial.println(F("FLASH"));
         parseFilename( smsBuffer + sizeof(FLASHPASSWORD) );
 
         eepromWrite();
@@ -296,9 +302,15 @@ void smsParse(int8_t NumSMS)
     if (strcmp_P(smsBuffer, (prog_char*)F(PINGPASSWORD)) == 0)        //  PING password...
     {
         Serial.println(F("PING"));
-        sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          batteryRead(), solarCharging(), sonarRead());
-        fona.sendSMS(smsSender, smsBuffer);
+        dweetPost(FOTA, 0, 0, 0);
+
+        //sprintf_P(smsBuffer, DEVICE_STR),
+        //sprintf_P(smsBuffer + sizeof(DEVICE), (prog_char *)F(" v:%d c:%d h:%d"),
+        //sprintf_P(smsBuffer + 30, (prog_char *)F(" v:%d c:%d h:%d"),
+          //batteryRead(), solarCharging(), sonarRead());
+        //sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
+          //batteryRead(), solarCharging(), sonarRead());
+        //fona.sendSMS(smsSender, smsBuffer);
     }
 
     // BEEPASSWORD

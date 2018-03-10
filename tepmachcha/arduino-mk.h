@@ -12,6 +12,7 @@
 //#include "secrets/bmc.h"  // override config.h template defs
 //#include "secrets/kcr1.h" // override config.h template defs
 #include "secrets/pp1.h" // override config.h template defs
+//#include "secrets/secrets.h" // override config.h template defs
 
 // tepmachcha
 void setup(void);
@@ -19,7 +20,7 @@ void loop(void);
 void upload(int16_t, boolean);
 boolean dmisPost(int, boolean,  uint16_t);
 boolean ews1294Post (int, boolean, uint16_t);
-boolean dweetPost (int, uint16_t, uint16_t);
+boolean dweetPost (uint8_t, int, uint16_t, uint16_t);
 
 // sonar
 int16_t sonarRead(void);

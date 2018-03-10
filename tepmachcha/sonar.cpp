@@ -51,7 +51,7 @@ int16_t mode (int16_t *sample, uint8_t n)
 
 // Read Maxbotix MB7363 samples in free-run/filtered mode.
 // Don't call this more than 6Hz due to min. 160ms sonar cycle time
-void sonarSamples(int16_t sample[])
+void sonarSamples(int16_t *sample)
 {
     digitalWrite (RANGE, HIGH);  // sonar on
     wait (100);

@@ -130,10 +130,11 @@ int16_t internalTemp(void)
 
 
 uint16_t freeRam (void) {
-  extern uint16_t __heap_start;
-  extern int *__brkval; 
+  extern int __heap_start;
+  extern void *__brkval;
   //extern int  __bss_end;
   int v; 
-  return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__heap_start : (uint16_t) __brkval); 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+  //return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__heap_start : (uint16_t) __brkval); 
   //return (uint16_t) &v - (__brkval == 0 ? (uint16_t) &__bss_end : (int) __brkval); 
 }

@@ -14,8 +14,7 @@
 #include <EEPROM.h>           //  EEPROM lib
 #include "Adafruit_FONA.h"
 
-
-// save RAM by reducing hw serial rcv buffer (default 64)
+// save RAM by reducing HW serial rcv buffer (default 64)
 // Note the XBee has a buffer of 100 bytes, but as we don't
 // receive much from XBee we can reduce the buffer.
 #define SERIAL_BUFFER_SIZE 32
@@ -63,25 +62,25 @@
 
 #define DEBUG_RAM     ram();
 
-static const char OK_STRING[] PROGMEM = "OK";
-#define OK ((__FlashStringHelper*)OK_STRING)
-
+// Expand #define macro value to a string
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
 
-
 // Device string includes date and time; helps identify version
 // Note: C compiler concatenates adjacent strings
-//#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(STREAM_HEIGHT) "cm"
-#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID
-//#static const char DEVICE_STRING[] PROGMEM = "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID;
-//##define DEVICE ((__FlashStringHelper*)DEVICE_STRING)
-
+#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
+//#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID
 
 // call into bootloader jumptable at top of flash
 #define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
 #define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
 #define EEPROM_FILENAME_ADDR (E2END - 1)
+
+#define FOTA 0
+#define STATUS 1
+
+// tepmachcha
+extern const char DEVICE_STR[] PROGMEM;
 
 // File
 extern const uint8_t CHIP_SELECT;  // SD chip select pin (SS = 10)
@@ -95,5 +94,7 @@ extern DS1337 RTC;         //  Create the DS1337 real-time clock (RTC) object
 extern Sleep sleep;        //  Create the sleep object
 
 // fona
+#define OK ((__FlashStringHelper*)OK_STRING)
+extern const char OK_STRING[] PROGMEM;
 extern SoftwareSerial fonaSerial;
 extern Adafruit_FONA fona;
