@@ -1,7 +1,7 @@
 #include "tepmachcha.h"
 
 uint8_t error;
-const uint8_t CHIP_SELECT = SS;  // SD chip select pin (SS = 10)
+const uint8_t CHIP_SELECT = SS;  // SD chip select pin (SS = pin 10)
 SdCard card;
 Fat16 file;
 char file_name[13];              // 8.3
@@ -304,45 +304,36 @@ boolean firmwareGet(void)
 { 
   Serial.println(F("Fetching FW"));
 
-  if ( ftpGet() )
+  if ( !ftpGet() ) error = 10; else
   {
     for (uint8_t tries=3 ;tries;tries--)
     {
-      if ( fileInit() )
+      if ( !fileInit() ) error = 20; else
       {
-        if ( fileOpenWrite() )
+        if ( !fileOpenWrite() ) error = 30; else
         {
-          if (fonaFileCopy(file_size))
+          if (!fonaFileCopy(file_size)) error = 40; else
           {
             fileClose();
             error = 0;
             return true;
-          } else {
-            error = 4;
           }
-        } else {
-          error = 3;
         }
-      } else {
-        error = 2;
       }
       fileClose();
     }
-  } else {
-    error = 1;
   }
   Serial.println(F("fona copy failed"));
   return false;
 }
-
-
 void reflash (void) {
     Serial.println(F("updating eeprom...."));
     eepromWrite();
 
     Serial.println(F("reflashing...."));
+
     delay(100);
 
-    //SP=RAMEND;
+    // Jump to bootloader
     flash_firmware(file_name);
 }

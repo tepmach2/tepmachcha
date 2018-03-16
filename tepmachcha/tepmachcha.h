@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.5"
+#define VERSION "2.6"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration
@@ -51,7 +51,7 @@
 #define PING     A0 //  Sonar ping pin
 #define FONA_TX  7  //  UART pin from FONA
 #define RANGE    8  //  Sonar range pin -- pull low to turn off sonar
-#define BUS_PWR  9  //  Peripheral bus power for 3.1 comment out for 3.0
+#define BUS_PWR  9  //  Peripheral bus power for 3.1
 
 #define FONA_RTS na //  FONA RTS pin - check
 #define FONA_KEY A2 //  FONA Key pin
@@ -60,7 +60,7 @@
 #define BATT     A7 //  Battery level
 #endif
 
-#define DEBUG_RAM     ram();
+#define DEBUG_RAM     debugFreeRam();
 
 // Expand #define macro value to a string
 #define STR_EXPAND(tok) #tok
@@ -69,7 +69,6 @@
 // Device string includes date and time; helps identify version
 // Note: C compiler concatenates adjacent strings
 #define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
-//#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID
 
 // call into bootloader jumptable at top of flash
 #define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))

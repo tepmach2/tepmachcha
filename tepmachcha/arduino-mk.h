@@ -9,9 +9,9 @@
 #include <Arduino.h>
 //#include "secrets/btb1.h" // override config.h template defs
 //#include "secrets/btb2.h" // override config.h template defs
-//#include "secrets/bmc.h"  // override config.h template defs
+#include "secrets/bmc.h"  // override config.h template defs
 //#include "secrets/kcr1.h" // override config.h template defs
-#include "secrets/pp1.h" // override config.h template defs
+//#include "secrets/pp1.h" // override config.h template defs
 //#include "secrets/secrets.h" // override config.h template defs
 
 // tepmachcha
@@ -35,6 +35,7 @@ boolean solarCharging(void);
 void wait (uint32_t);
 int16_t internalTemp(void);
 uint16_t freeRam(void);
+void debugFreeRam(void);
 
 // fona
 void fonaFlush(void);
@@ -80,6 +81,5 @@ extern uint16_t file_size;
 extern uint8_t error;
 
 // test
-void ram(void);
 void test(void);
 void testSMS(void);

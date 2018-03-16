@@ -244,8 +244,8 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     // flush response
     while (response_length > 0)
     {
-       fonaFlush();
-       response_length--;
+      fonaFlush();
+      response_length--;
     }
 
     fona.HTTP_POST_end();
@@ -343,7 +343,6 @@ boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
         millis(),
         internalTemp(),
         freeRam());
-    //dweetPost(F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), content);
     dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
 }
 
@@ -357,7 +356,6 @@ boolean dweetPostFota(boolean status)
         file_size,
         status,
         error);
-    //dweetPost(F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "-FOTA\""), content);
     dweetPost((prog_char*)F(DWEETDEVICE_ID "-FOTA"), json);
 }
 
@@ -376,9 +374,8 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
-    //fona.sendCheckReply (endpoint, OK);
 
-    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/%S"), endpoint);
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/%S\""), endpoint);
     fona.sendCheckReply (url, OK);
 
     // json data

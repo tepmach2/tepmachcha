@@ -4,30 +4,6 @@ void testSMS() {
   fona.sendSMS(TESTPHONE, "hello from tepmachcha");
 }
 
-
-/*
-static int freeRam(void) {
-  extern int  __bss_end;
-  extern int* __brkval;
-  int free_memory;
-  if (reinterpret_cast<int>(__brkval) == 0) {
-    // if no heap use from end of bss section
-    free_memory = reinterpret_cast<int>(&free_memory)
-                  - reinterpret_cast<int>(&__bss_end);
-  } else {
-    // use from top of stack to heap
-    free_memory = reinterpret_cast<int>(&free_memory)
-                  - reinterpret_cast<int>(__brkval);
-  }
-  return free_memory;
-}
-*/
-
-void ram(void) {
-  Serial.print (F("Ram free: "));
-  Serial.println (freeRam());
-}
-
 void printMenu(void) {
   Serial.println(F("-------------------------------------"));
   Serial.println(F("[?] Print this menu"));
