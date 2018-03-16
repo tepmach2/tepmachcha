@@ -85,7 +85,7 @@ boolean fonaGSMOn(void) {
   {
     uint8_t status = fona.getNetworkStatus();
     wait (500);
-    if (status == 1 || status == 5)
+    if (status == 1)  // replace with (status == 1 || status == 5) to allow roaming
     {
       Serial.println(F("done."));
       fona.sendCheckReply (F("AT+COPS?"), OK);  // Network operator
