@@ -325,7 +325,7 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
     }
 
     fonaFlush();
-    fona.HTTP_POST_end();
+    fona.HTTP_term();
 
     return (statusCode == 201);
 }
@@ -333,22 +333,23 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
 boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
-    char json[120];
+    char json[132];
 
     sprintf_P(json,
-      (prog_char*)F("{\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+      (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+        SENSOR_HEIGHT - streamHeight,
         streamHeight,
         solar,
         voltage,
         millis(),
         internalTemp(),
         freeRam());
-    dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
+    return dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
 }
 
 boolean dweetPostFota(boolean status)
 {
-    char json[80];
+    char json[64];
 
     sprintf_P(json,
       (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
@@ -356,7 +357,7 @@ boolean dweetPostFota(boolean status)
         file_size,
         status,
         error);
-    dweetPost((prog_char*)F(DWEETDEVICE_ID "-FOTA"), json);
+    return dweetPost((prog_char*)F(DWEETDEVICE_ID "-FOTA"), json);
 }
 
 
@@ -375,7 +376,7 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
 
-    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\", \"dweet.io/dweet/quietly/for/%S\""), endpoint);
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint);
     fona.sendCheckReply (url, OK);
 
     // json data
@@ -398,14 +399,9 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     // report status, response data
     Serial.print (F("http code: ")); Serial.println (statusCode);
     Serial.print (F("reply len: ")); Serial.println (dataLen);
-    if (dataLen > 0)
-    {
-      fona.sendCheckReply (F("AT+HTTPREAD"), OK);
-      delay(1000);
-    }
 
     fonaFlush();
-    fona.HTTP_POST_end();
+    fona.HTTP_term();
 
     return (statusCode == 204);
 }

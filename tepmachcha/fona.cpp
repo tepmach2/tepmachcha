@@ -275,6 +275,7 @@ void smsParse(int8_t NumSMS)
 
         dweetPostFota(status);
 
+        return;
         /*
         if (status)
         {
@@ -328,6 +329,7 @@ void smsCheck (void)
 {
 		uint32_t timeout;
 		int8_t NumSMS;
+    DEBUG_RAM
 
 		fonaFlush();    //  Flush out any unresolved data
 		Serial.println (F("Checking for SMS messages..."));
@@ -358,7 +360,7 @@ void smsCheck (void)
       if (millis() >= timeout)
       {
         smsDeleteAll();
-        break;
+        return;
       }
 		}
 }

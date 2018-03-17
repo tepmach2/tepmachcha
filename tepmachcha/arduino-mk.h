@@ -9,7 +9,7 @@
 #include <Arduino.h>
 //#include "secrets/btb1.h" // override config.h template defs
 //#include "secrets/btb2.h" // override config.h template defs
-#include "secrets/bmc.h"  // override config.h template defs
+//#include "secrets/bmc.h"  // override config.h template defs
 //#include "secrets/kcr1.h" // override config.h template defs
 //#include "secrets/pp1.h" // override config.h template defs
 //#include "secrets/secrets.h" // override config.h template defs
@@ -22,7 +22,6 @@ boolean dmisPost(int, boolean,  uint16_t);
 boolean ews1294Post (int, boolean, uint16_t);
 boolean dweetPostStatus (int, uint16_t, uint16_t);
 boolean dweetPostFota (boolean);
-//boolean dweetPost (const __FlashStringHelper*, char *);
 boolean dweetPost (prog_char *, char *);
 
 // sonar

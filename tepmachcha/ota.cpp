@@ -239,7 +239,6 @@ boolean fonaFileCopy(uint16_t len)
 void ftpEnd(void)
 {
   fona.sendCheckReply (F("AT+FTPQUIT"), OK);
-  fona.sendCheckReply (F("AT+FTPSHUT"), OK);
 }
 
 
@@ -288,6 +287,7 @@ boolean ftpGet(void)
       return false;
     }
   }
+  delay(2000);
   ftpEnd();
 
   // Check the file exists
@@ -304,13 +304,13 @@ boolean firmwareGet(void)
 { 
   Serial.println(F("Fetching FW"));
 
-  if ( !ftpGet() ) error = 10; else
+  if (!ftpGet()) error = 10; else
   {
     for (uint8_t tries=3 ;tries;tries--)
     {
-      if ( !fileInit() ) error = 20; else
+      if (!fileInit()) error = 20; else
       {
-        if ( !fileOpenWrite() ) error = 30; else
+        if (!fileOpenWrite()) error = 30; else
         {
           if (!fonaFileCopy(file_size)) error = 40; else
           {
@@ -326,6 +326,59 @@ boolean firmwareGet(void)
   Serial.println(F("fona copy failed"));
   return false;
 }
+
+
+
+/*
+#define SPI_PORT PORTB
+#define SPI_DDR  DDRB
+#define SPI_MISO PB4    //DataOut of MMC
+#define SPI_MOSI PB3    //DataIn of  MMC
+#define SPI_CLK  PB5    //Clock of MMC
+#define SPI_SS   PB2    //SS pin of SPI interface
+#define MMC_CS  PB2  //also change MMC_PORT and MMC_DDR acordingly
+
+#define MMC_PORT  PORTB
+#define MMC_DDR   DDRB
+
+void reflash (void) {
+    Serial.println(F("updating eeprom...."));
+    eepromWrite();
+
+    Serial.println(F("reflashing...."));
+#ifdef STALKERv31
+    digitalWrite (BUS_PWR, LOW);  // Peripheral bus off
+    delay(100);
+    digitalWrite (BUS_PWR, HIGH); // Peripheral bus on
+#endif
+
+    SPI_DDR |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS;  // SPI Data -> Output
+    MMC_DDR |= 1<<MMC_CS;                             // MMC Chip Select -> Output
+    SPCR = 1<<SPE | 1<<MSTR | 1<<SPR1 | 1<<SPR0;      // SPI Enable, SPI Master Mode, f/128 clock
+    MMC_PORT &= ~(1<<MMC_CS); // mmc select
+
+    // wait 80+ clocks after reset
+    for (uint8_t i=10; i;i--)
+    {
+      SPDR=0xff; loop_until_bit_is_set(SPSR, SPIF);
+    }
+
+    // send CMD0
+    SPDR=0x40; loop_until_bit_is_set(SPSR, SPIF);
+    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
+    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
+    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
+    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
+    SPDR=0x95; loop_until_bit_is_set(SPSR, SPIF);
+
+    SPI_PORT |= 1<<SPI_SS;   // mmc deselect
+    delay(100);
+
+    // Jump to bootloader
+    flash_firmware(file_name);
+}
+*/
+
 void reflash (void) {
     Serial.println(F("updating eeprom...."));
     eepromWrite();
