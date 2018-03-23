@@ -74,7 +74,7 @@ boolean solarCharging(void)
 
     solar = solarVoltage();
     // despite calcs above, measurements show voltage of ~0.51 when charging
-    if ( solar > 160 && solar <= 220 )    // charging, 3.3v analogue ref
+    if ( solar > 160 && solar <= 250 )    // charging, 3.3v analogue ref
     {
        return true;
     }

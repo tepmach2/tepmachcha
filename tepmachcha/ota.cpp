@@ -328,57 +328,6 @@ boolean firmwareGet(void)
 }
 
 
-
-/*
-#define SPI_PORT PORTB
-#define SPI_DDR  DDRB
-#define SPI_MISO PB4    //DataOut of MMC
-#define SPI_MOSI PB3    //DataIn of  MMC
-#define SPI_CLK  PB5    //Clock of MMC
-#define SPI_SS   PB2    //SS pin of SPI interface
-#define MMC_CS  PB2  //also change MMC_PORT and MMC_DDR acordingly
-
-#define MMC_PORT  PORTB
-#define MMC_DDR   DDRB
-
-void reflash (void) {
-    Serial.println(F("updating eeprom...."));
-    eepromWrite();
-
-    Serial.println(F("reflashing...."));
-#ifdef STALKERv31
-    digitalWrite (BUS_PWR, LOW);  // Peripheral bus off
-    delay(100);
-    digitalWrite (BUS_PWR, HIGH); // Peripheral bus on
-#endif
-
-    SPI_DDR |= 1<<SPI_CLK | 1<<SPI_MOSI | 1<<SPI_SS;  // SPI Data -> Output
-    MMC_DDR |= 1<<MMC_CS;                             // MMC Chip Select -> Output
-    SPCR = 1<<SPE | 1<<MSTR | 1<<SPR1 | 1<<SPR0;      // SPI Enable, SPI Master Mode, f/128 clock
-    MMC_PORT &= ~(1<<MMC_CS); // mmc select
-
-    // wait 80+ clocks after reset
-    for (uint8_t i=10; i;i--)
-    {
-      SPDR=0xff; loop_until_bit_is_set(SPSR, SPIF);
-    }
-
-    // send CMD0
-    SPDR=0x40; loop_until_bit_is_set(SPSR, SPIF);
-    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
-    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
-    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
-    SPDR=0x0; loop_until_bit_is_set(SPSR, SPIF);
-    SPDR=0x95; loop_until_bit_is_set(SPSR, SPIF);
-
-    SPI_PORT |= 1<<SPI_SS;   // mmc deselect
-    delay(100);
-
-    // Jump to bootloader
-    flash_firmware(file_name);
-}
-*/
-
 void reflash (void) {
     Serial.println(F("updating eeprom...."));
     eepromWrite();
