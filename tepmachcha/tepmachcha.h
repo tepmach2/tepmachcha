@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.3"
+#define VERSION "2.7.2"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration
@@ -14,8 +14,7 @@
 #include <EEPROM.h>           //  EEPROM lib
 #include "Adafruit_FONA.h"
 
-
-// save RAM by reducing hw serial rcv buffer (default 64)
+// save RAM by reducing HW serial rcv buffer (default 64)
 // Note the XBee has a buffer of 100 bytes, but as we don't
 // receive much from XBee we can reduce the buffer.
 #define SERIAL_BUFFER_SIZE 32
@@ -23,7 +22,8 @@
 #define RTCINTA 0    //  RTC INTA
 #define RTCINTB 1    //  RTC INTB
 
-/* carrier 1
+// tepmachcha DAI
+#ifdef SHIELDv1
 #define RTCINT1  2  //  Onboard Stalker RTC pin
 #define FONA_RST 3  //  FONA RST pin
 #define SD_POWER 4  //  optional power to SD card
@@ -38,9 +38,10 @@
 #define FONA_PS  A3 //  FONA power status pin
 #define SOLAR    A6 //  Solar charge state
 #define BATT     A7 //  Battery level
-*/
+#endif
 
-// carrier 2
+// tepmachcha v2
+#ifdef SHIELDv2
 #define RTCINT1  2  //  Onboard Stalker RTC pin
 #define WATCHDOG 3  //  (RTCINT2) low to reset
 #define FONA_RST A1 //  FONA RST pin
@@ -50,41 +51,29 @@
 #define PING     A0 //  Sonar ping pin
 #define FONA_TX  7  //  UART pin from FONA
 #define RANGE    8  //  Sonar range pin -- pull low to turn off sonar
-
-#define BUS_PWR  9  //  Peripheral bus power for 3.1 comment out for 3.0
+#define BUS_PWR  9  //  Peripheral bus power for 3.1
 
 #define FONA_RTS na //  FONA RTS pin - check
 #define FONA_KEY A2 //  FONA Key pin
 #define FONA_PS  A3 //  FONA power status pin
 #define SOLAR    A6 //  Solar charge state
 #define BATT     A7 //  Battery level
+#endif
 
-#define DEBUG_RAM     ram();
+#define DEBUG_RAM     debugFreeRam();
 
-static const char OK_STRING[] PROGMEM = "OK";
-#define OK ((__FlashStringHelper*)OK_STRING)
-
+// Expand #define macro value to a string
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
 
-
 // Device string includes date and time; helps identify version
 // Note: C compiler concatenates adjacent strings
-//#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(STREAM_HEIGHT) "cm"
-#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID
-//#static const char DEVICE_STRING[] PROGMEM = "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID;
-//##define DEVICE ((__FlashStringHelper*)DEVICE_STRING)
+#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
 
-
-// call into bootloader jumptable at top of flash
-#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
-#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
-#define EEPROM_FILENAME_ADDR (E2END - 1)
+// tepmachcha
+extern const char DEVICE_STR[] PROGMEM;
 
 // File
-extern const uint8_t CHIP_SELECT;  // SD chip select pin (SS = 10)
-extern SdCard card;
-extern Fat16 file;
 extern char file_name[13];              // 8.3
 extern uint16_t file_size;
 
@@ -93,5 +82,7 @@ extern DS1337 RTC;         //  Create the DS1337 real-time clock (RTC) object
 extern Sleep sleep;        //  Create the sleep object
 
 // fona
+#define OK ((__FlashStringHelper*)OK_STRING)
+extern const char OK_STRING[] PROGMEM;
 extern SoftwareSerial fonaSerial;
 extern Adafruit_FONA fona;

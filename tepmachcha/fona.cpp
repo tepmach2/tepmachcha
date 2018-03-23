@@ -1,5 +1,7 @@
 #include "tepmachcha.h"
 
+const char OK_STRING[] PROGMEM = "OK";
+
 SoftwareSerial fonaSerial = SoftwareSerial (FONA_TX, FONA_RX);
 Adafruit_FONA fona = Adafruit_FONA (FONA_RST);
 
@@ -83,7 +85,7 @@ boolean fonaGSMOn(void) {
   {
     uint8_t status = fona.getNetworkStatus();
     wait (500);
-    if (status == 1 || status == 5)
+    if (status == 1)  // replace with (status == 1 || status == 5) to allow roaming
     {
       Serial.println(F("done."));
       fona.sendCheckReply (F("AT+COPS?"), OK);  // Network operator
@@ -108,7 +110,7 @@ boolean fonaGPRSOn(void) {
   {
     for (uint8_t attempt = 1; attempt < 7; attempt++)
     {
-      Serial.print (F("Turning GPRS on, attempt ")); Serial.println(attempt);
+      Serial.print (F("GPRS -> on, attempt ")); Serial.println(attempt);
       fona.enableGPRS (true);
 
       if (fona.GPRSstate() == 1)
@@ -130,13 +132,16 @@ boolean fonaGPRSOn(void) {
 
 
 void fonaGPRSOff(void) {
-  Serial.print (F("Turning GPRS off: "));
-  if (fona.GPRSstate() == 1)
+  Serial.print (F("GPRS -> off: "));
+  if (digitalRead (FONA_PS) == HIGH) 
   {
-    if (!fona.enableGPRS(false))
+    if (fona.GPRSstate() == 1)
     {
-      Serial.println (F("failed"));
-      return;
+      if (!fona.enableGPRS(false))
+      {
+        Serial.println (F("failed"));
+        return;
+      }
     }
   }
   Serial.println (F("done"));
@@ -208,7 +213,6 @@ void smsDeleteAll(void)
 char *parseFilename(char *b)
 {
     uint8_t i;
-
     DEBUG_RAM
 
     while (*b == ' ') b++; // skip spaces
@@ -229,6 +233,7 @@ void smsParse(int8_t NumSMS)
 		char smsBuffer[SIZEOF_SMS];
 		char smsSender[SIZEOF_SMS_SENDER];
 		uint16_t smsLen;
+    DEBUG_RAM
 
     fona.readSMS (NumSMS, smsBuffer, sizeof(smsBuffer)-1, &smsLen);  // retrieve the most recent one
     wait (500);                                                      // required delay
@@ -240,6 +245,16 @@ void smsParse(int8_t NumSMS)
     Serial.print (smsSender);
     Serial.println (F(":"));
     Serial.println (smsBuffer);
+
+    // BEEPASSWORD
+    if (strcmp_P(smsBuffer, (prog_char*)F(BEEPASSWORD)) == 0)        //  XBee password...
+    {
+        XBeeOn();
+        XBeeOnMessage(smsBuffer);
+        fona.sendSMS(smsSender, smsBuffer);  //  Tell the sender what you've done
+        Serial.println (F("XBee turned on by SMS."));
+        return;
+    }
 
     // FOTAPASSWD <filename> <filesize>
     if (strncmp_P(smsBuffer, (prog_char*)F(FOTAPASSWORD), sizeof(FOTAPASSWORD)-1) == 0) //  FOTA password...
@@ -264,19 +279,29 @@ void smsParse(int8_t NumSMS)
         uint8_t status;
         if (!(status = firmwareGet()))   // If at first we dont succeed
         {
-          fonaOn();                      // try again
-          status = firmwareGet();
+          fonaOff(); fonaOn(); status = firmwareGet(); // try again
         }
 
-        sprintf_P(smsBuffer, (prog_char *)F("ftp %s (%d) ok:%d, err:%d, crc:%d"), \
-          file_name, file_size, status, error, 0);
+        dweetPostFota(status);
+
+        return;
+        /*
+        if (status)
+        {
+          sprintf_P(smsBuffer, (prog_char *)F("d/l success: %s (%d)"), \
+            file_name, file_size);
+        } else {
+          sprintf_P(smsBuffer, (prog_char *)F("d/l failed: %s (%d) error: %d"), \
+            file_name, file_size, error);
+        }
         fona.sendSMS(smsSender, smsBuffer);  // return file stat, status
+        */
     }
 
     // FLASHPASSWD <filename>
     if (strncmp_P(smsBuffer, (prog_char*)F(FLASHPASSWORD), sizeof(FLASHPASSWORD)-1) == 0) //  FOTA password...
     {
-        Serial.println(F("Flash"));
+        Serial.println(F("FLASH"));
         parseFilename( smsBuffer + sizeof(FLASHPASSWORD) );
 
         eepromWrite();
@@ -287,21 +312,16 @@ void smsParse(int8_t NumSMS)
     if (strcmp_P(smsBuffer, (prog_char*)F(PINGPASSWORD)) == 0)        //  PING password...
     {
         Serial.println(F("PING"));
-        sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          batteryRead(), solarCharging(), takeReading());
-        //sprintf_P(smsBuffer, (prog_char *)F("%p v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)), \
-          //F(DEVICE), batteryRead(), solarCharging(), takeReading());
+        dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
+
+        /*
+        sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
+          batteryRead(), solarCharging(), sonarRead());
         fona.sendSMS(smsSender, smsBuffer);
+        */
+        return;
     }
 
-    // BEEPASSWORD
-    if (strcmp_P(smsBuffer, (prog_char*)F(BEEPASSWORD)) == 0)        //  XBee password...
-    {
-        XBeeOn();
-        XBeeOnMessage(smsBuffer);
-        fona.sendSMS(smsSender, smsBuffer);  //  Tell the sender what you've done
-        Serial.println (F("XBee turned on by SMS."));
-    }
 }
 
 
@@ -310,6 +330,7 @@ void smsCheck (void)
 {
 		uint32_t timeout;
 		int8_t NumSMS;
+    DEBUG_RAM
 
 		fonaFlush();    //  Flush out any unresolved data
 		Serial.println (F("Checking for SMS messages..."));
@@ -340,7 +361,7 @@ void smsCheck (void)
       if (millis() >= timeout)
       {
         smsDeleteAll();
-        break;
+        return;
       }
 		}
 }

@@ -1,7 +1,12 @@
 #include "tepmachcha.h"
 
+// call into bootloader jumptable at top of flash
+#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
+#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
+#define EEPROM_FILENAME_ADDR (E2END - 1)
+
 uint8_t error;
-const uint8_t CHIP_SELECT = SS;  // SD chip select pin (SS = 10)
+const uint8_t CHIP_SELECT = SS;  // SD chip select pin (SS = pin 10)
 SdCard card;
 Fat16 file;
 char file_name[13];              // 8.3
@@ -239,7 +244,6 @@ boolean fonaFileCopy(uint16_t len)
 void ftpEnd(void)
 {
   fona.sendCheckReply (F("AT+FTPQUIT"), OK);
-  fona.sendCheckReply (F("AT+FTPSHUT"), OK);
 }
 
 
@@ -288,6 +292,7 @@ boolean ftpGet(void)
       return false;
     }
   }
+  delay(2000);
   ftpEnd();
 
   // Check the file exists
@@ -302,36 +307,27 @@ boolean ftpGet(void)
 
 boolean firmwareGet(void)
 { 
-  // Ensure GPRS is on
-  if (fona.GPRSstate() != 1)
-  {
-    Serial.println(F("no GPRS"));
-    return false;
-  }
-
   Serial.println(F("Fetching FW"));
 
-  if ( ftpGet() )
+  if (!ftpGet()) error = 10; else
   {
     for (uint8_t tries=3 ;tries;tries--)
     {
-      if ( fileInit() && fileOpenWrite() )
+      if (!fileInit()) error = 20; else
       {
-        if (fonaFileCopy(file_size))
+        if (!fileOpenWrite()) error = 30; else
         {
-          fileClose();
-          return true;
-        } else {
-          error = 3;
+          if (!fonaFileCopy(file_size)) error = 40; else
+          {
+            fileClose();
+            error = 0;
+            return true;
+          }
         }
-      } else {
-        error = 2;
       }
+      fileClose();
     }
-  } else {
-    error = 1;
   }
-  fileClose();
   Serial.println(F("fona copy failed"));
   return false;
 }
@@ -342,8 +338,9 @@ void reflash (void) {
     eepromWrite();
 
     Serial.println(F("reflashing...."));
+
     delay(100);
 
-    //SP=RAMEND;
+    // Jump to bootloader
     flash_firmware(file_name);
 }

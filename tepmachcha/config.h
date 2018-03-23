@@ -3,6 +3,11 @@
 
 #ifndef SECRETS
 
+#define STALKERv30
+#define STALKERv31
+#define SHIELDv1
+#define SHIELDv2
+
 #define TESTPHONE     "+85512345678"
 #define APN           "FONAapn"
 #define DMISSENSOR_ID "DMIS sensor id"
@@ -23,6 +28,7 @@
 #define KEY3          0x090a0b0c
 #define KEY4          0x0d0e0f00
 
+#define SENSOR_MIN      55  //  Min reading of sensor
 #define SENSOR_HEIGHT  500  //  Height of top of octagonal gasket from streambed, in cm
 #define UTCOFFSET        7  //  Local standard time variance from UTC
 #define XBEEWINDOWSTART 14  //  Hour to turn on XBee for programming window

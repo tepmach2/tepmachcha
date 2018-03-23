@@ -1,39 +1,16 @@
 #include "tepmachcha.h"
 
+// call into bootloader jumptable at top of flash
+#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
+#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
+#define EEPROM_FILENAME_ADDR (E2END - 1)
+
+extern Fat16 file;
+extern char file_name[13];              // 8.3
+extern uint16_t file_size;
+
 void testSMS() {
   fona.sendSMS(TESTPHONE, "hello from tepmachcha");
-}
-
-static int freeRam (void) {
-  extern int __heap_start;
-  extern int *__brkval; 
-  //extern int  __bss_end;
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-  //return (int) &v - (__brkval == 0 ? (int) &__bss_end : (int) __brkval); 
-}
-
-/*
-static int freeRam(void) {
-  extern int  __bss_end;
-  extern int* __brkval;
-  int free_memory;
-  if (reinterpret_cast<int>(__brkval) == 0) {
-    // if no heap use from end of bss section
-    free_memory = reinterpret_cast<int>(&free_memory)
-                  - reinterpret_cast<int>(&__bss_end);
-  } else {
-    // use from top of stack to heap
-    free_memory = reinterpret_cast<int>(&free_memory)
-                  - reinterpret_cast<int>(__brkval);
-  }
-  return free_memory;
-}
-*/
-
-void ram(void) {
-  Serial.print (F("Ram free: "));
-  Serial.println (freeRam());
 }
 
 void printMenu(void) {
@@ -135,8 +112,8 @@ void test(void)
       break;
     }
     case 'd': {
-      //dmisPost(takeReading(), solarCharging(), fonaBattery());
-      ews1294Post(takeReading(), solarCharging(), fonaBattery());
+      //dmisPost(sonarRead(), solarCharging(), fonaBattery());
+      ews1294Post(sonarRead(), solarCharging(), fonaBattery());
       break;
     }
     case 'o': {
@@ -195,7 +172,7 @@ void test(void)
       break;
     }
     case 't': {
-      takeReading();
+      sonarRead();
       break;
     }
     case 'G': {
@@ -322,7 +299,7 @@ void test(void)
       break;
     }
     case 'u': {
-      upload();
+      upload(555, true);
       break;
     }
   }

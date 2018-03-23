@@ -1,7 +1,9 @@
 #include "tepmachcha.h"
 
-boolean freshboot = true; // Newly rebooted
-Sleep sleep;              //  Create the sleep object
+const char DEVICE_STR[] PROGMEM = DEVICE;
+
+//boolean freshboot = true; // Newly rebooted
+Sleep sleep;              // Create the sleep object
 
 static void rtcIRQ (void)
 {
@@ -17,7 +19,7 @@ void setup (void)
 		Serial.begin (57600); // Begin debug serial
     fonaSerial.begin (4800); //  Open a serial interface to FONA
 
-		Serial.println (F(DEVICE));
+		Serial.println ((__FlashStringHelper*)DEVICE_STR);
 
 		Serial.print (F("Battery: "));
 		Serial.print (batteryRead());
@@ -29,7 +31,7 @@ void setup (void)
 		pinMode (FONA_KEY, OUTPUT);
 		pinMode (FONA_RX, OUTPUT);
 		pinMode (SD_POWER, OUTPUT);
-#ifdef BUS_PWR
+#ifdef STALKERv31
 		pinMode (BUS_PWR, OUTPUT);
 #endif
 
@@ -37,7 +39,7 @@ void setup (void)
 		digitalWrite (SD_POWER, HIGH);       // SD card off
     digitalWrite (BEEPIN, LOW);          // XBee on
 		digitalWrite (FONA_KEY, HIGH);       // Initial state for key pin
-#ifdef BUS_PWR
+#ifdef STALKERv31
     digitalWrite (BUS_PWR, HIGH);        // Peripheral bus on
 #endif
 
@@ -59,7 +61,7 @@ void setup (void)
 				Serial.flush();
 				digitalWrite (BEEPIN, HIGH);      //  Make sure XBee is powered off
 				digitalWrite (RANGE, LOW);        //  Make sure sonar is off
-#ifdef BUS_PWR
+#ifdef STALKERv31
         //digitalWrite (BUS_PWR, LOW);   //  Peripheral bus off
 #endif
 				RTC.enableInterrupts (EveryHour); //  We'll wake up once an hour
@@ -81,6 +83,8 @@ void setup (void)
       smsDeleteAll();
 #endif
       clockSet();
+
+      dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
     }
     fonaOff();
 
@@ -97,10 +101,12 @@ void setup (void)
 }
 
 
+// This runs every minute, triggered by RTC interrupt
 void loop (void)
 {
+    boolean resetClock = false;
 
-#ifdef BUS_PWR
+#ifdef STALKERv31
     //digitalWrite (BUS_PWR, HIGH);           //  Peripheral bus on
     //wait(500);
 #endif
@@ -112,9 +118,14 @@ void loop (void)
 		Serial.println (now.minute());
 
     // The RTC drifts more than the datasheet says, so we
-    // reset the time every day at 1AM, by soft reboot
+    // reset the time every day at midnight.
+    if (now.hour() == 0 && now.minute() == 0)
+    {
+      resetClock = true;
+    }
     /*
-    if (!freshboot && now.hour() == 1 && now.minute() == 0)
+    // by soft reboot
+    if (!freshboot && now.hour() == 0 && now.minute() == 0)
     {
       Serial.println(F("reboot"));
       WDTCSR = _BV(WDE);  // enable watchdog timer
@@ -124,17 +135,29 @@ void loop (void)
     }
     */
 
-    XBee();
-
-		if (now.minute() % INTERVAL == 0)   //  If it is time to send a scheduled reading...
+    // Check if it is time to send a scheduled reading
+		if (now.minute() % INTERVAL == 0)
 		{
-				upload ();
+      int16_t streamHeight = 0;
+
+      // take a sonar reading, retry if it's obviously garbage
+      for (uint8_t tries = 3;
+        (streamHeight <= 0 || (SENSOR_HEIGHT - streamHeight) < SENSOR_MIN)
+        && tries; --tries)
+      {
+        streamHeight = sonarRead();
+        delay(1000);
+      }
+
+      upload (streamHeight, resetClock);
     }
+
+    XBee();
 
 		Serial.println(F("sleeping"));
 		Serial.flush();                         //  Flush any output before sleep
 
-#ifdef BUS_PWR
+#ifdef STALKERv31
     //digitalWrite (BUS_PWR, LOW);           //  Peripheral bus off
 #endif
 
@@ -144,44 +167,34 @@ void loop (void)
 }
 
 
-void upload()
+void upload(int16_t streamHeight, boolean resetClock)
 {
-  int16_t streamHeight;
   uint8_t status;
   boolean charging;
   uint16_t voltage;
+  uint16_t solarV;
 
-  if (fonaOn())
+  charging = solarCharging();
+  voltage = batteryRead();
+  solarV = solarVoltage();
+
+  Serial.print (F("Battery: "));
+  Serial.print (voltage);
+  Serial.println (F("mV"));
+  Serial.print (F("Solar: "));
+  Serial.print (solarV);
+
+  //if (fonaOn())
+  if (fonaOn() || (fonaOff(), fonaOn())) // try twice
   {
 
-    // The RTC drifts more than the datasheet says, so we
-    // reset the time every day at midnight
-    if (now.hour() == 0 && now.minute() == 0)
-    {
-       clockSet();
-    }
-
-    /*  One failure mode of the sonar -- if, for example, it is not getting enough power -- 
-     *	is to return the minimum distance the sonar can detect; in the case of the 10m sonars
-     *	this is 50cm. This is also what would happen if something were to block the unit -- a
-     *	plastic bag that blew onto the enclosure, for example.
-     *  We send the result anyway, as the alternative is send nothing
-     */
-    if ((streamHeight = takeReading()) <= 0)
-    {
-      streamHeight = takeReading();     // take a second reading
-    }
-
-    charging = solarCharging();
-    voltage = fonaBattery();
-
-    dweetPost(streamHeight, charging, voltage);
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
+    status &= dweetPostStatus(streamHeight, solarV, voltage);
 
-    // reset fona if upload failed
+    // reset fona if upload failed, so SMS works
     if (!status)
     {
       fonaOff();
@@ -192,6 +205,10 @@ void upload()
     // process SMS messages
     smsCheck();
 
+    if (resetClock)
+    {
+      clockSet();
+    }
   }
   fonaOff();
 }
@@ -201,13 +218,12 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;
     uint16_t response_length = 0;
-    char post_data[240];
-
+    char post_data[200];
     DEBUG_RAM
 
     // Construct the body of the POST request:
     sprintf_P (post_data,
-      (prog_char *)F("api_token=" EWSTOKEN_ID "&data={\"sensorId\":\"" EWSDEVICE_ID "\",\"version\":\"" VERSION "\",\"streamHeight\":\"%d\",\"charging\":\"%d\",\"voltage\":\"%d\",\"timestamp\":\"%d-%d-%dT%d:%d:%d.000Z\"}\r\n"),
+      (prog_char *)F("api_token=" EWSTOKEN_ID "&data={\"sensorId\":\"" EWSDEVICE_ID "\",\"streamHeight\":\"%d\",\"charging\":\"%d\",\"voltage\":\"%d\",\"timestamp\":\"%d-%d-%dT%d:%d:%d.000Z\"}\r\n"),
         streamHeight,
         solar,
         voltage,
@@ -224,16 +240,15 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     // Send the POST request we have constructed
     if (fona.HTTP_POST_start ("ews1294.info/api/v1/sensorapi",
                               F("application/x-www-form-urlencoded"),
-                              (uint8_t *)post_data, strlen(post_data),
+                              (uint8_t *)post_data,
+                              strlen(post_data),
                               &status_code,
                               &response_length))
+    // flush response
+    while (response_length > 0)
     {
-      // flush response
-      while (response_length > 0)
-      {
-         fonaFlush();
-         response_length--;
-      }
+      fonaFlush();
+      response_length--;
     }
 
     fona.HTTP_POST_end();
@@ -313,36 +328,62 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
     }
 
     fonaFlush();
-    fona.HTTP_POST_end();
+    fona.HTTP_term();
 
     return (statusCode == 201);
 }
 
 
-boolean dweetPost (int16_t streamHeight, boolean solar, uint16_t voltage)
+boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
-    uint16_t statusCode;
-    uint16_t dataLen;
-    char postData[200];
-    DEBUG_RAM
+    char json[142];
 
-    // HTTP POST headers
-    fona.sendCheckReply (F("AT+HTTPINIT"), OK);
-    fona.sendCheckReply (F("AT+HTTPSSL=1"), OK);   // SSL required
-    fona.sendCheckReply (F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/" DWEETDEVICE_ID "\""), OK);
-    fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), OK);
-    fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
-    fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
-
-    // json data
-    sprintf_P(postData,
-      (prog_char*)F("{\"streamHeight\":%d,\"charging\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+    // 109 + vars
+    sprintf_P(json,
+      (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
+        SENSOR_HEIGHT - streamHeight,
         streamHeight,
         solar,
         voltage,
         millis(),
         internalTemp(),
         freeRam());
+    return dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
+}
+
+boolean dweetPostFota(boolean status)
+{
+    char json[66];
+
+    // 43 + vars
+    sprintf_P(json,
+      (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
+        file_name,
+        file_size,
+        status,
+        error);
+    return dweetPost((prog_char*)F(DWEETDEVICE_ID "-FOTA"), json);
+}
+
+
+boolean dweetPost (prog_char *endpoint, char *postData)
+{
+    uint16_t statusCode;
+    uint16_t dataLen;
+    char url[72];
+    DEBUG_RAM
+
+    // HTTP POST headers
+    fona.sendCheckReply (F("AT+HTTPINIT"), OK);
+    fona.sendCheckReply (F("AT+HTTPSSL=1"), OK);   // SSL required
+    fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), OK);
+    fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
+    fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
+
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint); // 48 + endpoint
+    fona.sendCheckReply (url, OK);
+
+    // json data
     int s = strlen(postData);
 
     // tell fona to receive data, and how much
@@ -362,14 +403,9 @@ boolean dweetPost (int16_t streamHeight, boolean solar, uint16_t voltage)
     // report status, response data
     Serial.print (F("http code: ")); Serial.println (statusCode);
     Serial.print (F("reply len: ")); Serial.println (dataLen);
-    if (dataLen > 0)
-    {
-      fona.sendCheckReply (F("AT+HTTPREAD"), OK);
-      delay(1000);
-    }
 
     fonaFlush();
-    fona.HTTP_POST_end();
+    fona.HTTP_term();
 
-    return (statusCode == 201);
+    return (statusCode == 204);
 }
