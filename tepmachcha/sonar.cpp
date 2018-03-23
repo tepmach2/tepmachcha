@@ -54,7 +54,7 @@ int16_t mode (int16_t *sample, uint8_t n)
 void sonarSamples(int16_t *sample)
 {
     digitalWrite (RANGE, HIGH);  // sonar on
-    wait (100);
+    wait (1000);
 
     // wait for and discard first sample (160ms)
     pulseIn (PING, HIGH);

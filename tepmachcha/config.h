@@ -28,6 +28,7 @@
 #define KEY3          0x090a0b0c
 #define KEY4          0x0d0e0f00
 
+#define SENSOR_MIN      55  //  Min reading of sensor
 #define SENSOR_HEIGHT  500  //  Height of top of octagonal gasket from streambed, in cm
 #define UTCOFFSET        7  //  Local standard time variance from UTC
 #define XBEEWINDOWSTART 14  //  Hour to turn on XBee for programming window

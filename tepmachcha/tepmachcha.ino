@@ -85,6 +85,8 @@ void setup (void)
       smsDeleteAll();
 #endif
       clockSet();
+
+      dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
     }
     fonaOff();
 
@@ -141,7 +143,9 @@ void loop (void)
       int16_t streamHeight = 0;
 
       // take a sonar reading, retry if it's obviously garbage
-      for (uint8_t tries = 3; streamHeight <= 0 && tries; --tries)
+      for (uint8_t tries = 3;
+        (streamHeight <= 0 || (SENSOR_HEIGHT - streamHeight) < SENSOR_MIN)
+        && tries; --tries)
       {
         streamHeight = sonarRead();
         delay(1000);
@@ -182,7 +186,8 @@ void upload(int16_t streamHeight, boolean resetClock)
   Serial.print (F("Solar: "));
   Serial.print (solarV);
 
-  if (fonaOn())
+  //if (fonaOn())
+  if (fonaOn() || (fonaOff(), fonaOn())) // try twice
   {
 
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
