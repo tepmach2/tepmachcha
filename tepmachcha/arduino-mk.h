@@ -7,12 +7,6 @@
  * there may be a new arduino-preproc command that uses ctags - investigate
  */
 #include <Arduino.h>
-//#include "secrets/btb1.h" // override config.h template defs
-//#include "secrets/btb2.h" // override config.h template defs
-//#include "secrets/bmc.h"  // override config.h template defs
-//#include "secrets/kcr1.h" // override config.h template defs
-//#include "secrets/pp1.h" // override config.h template defs
-//#include "secrets/secrets.h" // override config.h template defs
 
 // tepmachcha
 void setup(void);
