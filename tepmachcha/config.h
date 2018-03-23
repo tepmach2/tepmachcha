@@ -14,6 +14,7 @@
 #define DMISAPIBEARER "YOUR_BEARER_ID"
 #define EWSTOKEN_ID   "EWS_TOKEN"
 #define EWSDEVICE_ID  "EWS_DEVICE"
+// max 24 chars:
 #define DWEETDEVICE_ID "TEP" EWSDEVICE_ID
 #define FTPPW         "FTP PASSWORD"
 #define FTPUSER       "FTP USER"

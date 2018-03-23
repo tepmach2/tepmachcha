@@ -336,7 +336,7 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
 boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
-    char json[142];
+    char json[140];
 
     // 109 + vars
     sprintf_P(json,
@@ -345,7 +345,7 @@ boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
         streamHeight,
         solar,
         voltage,
-        millis(),
+        millis()/1000,
         internalTemp(),
         freeRam());
     return dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
