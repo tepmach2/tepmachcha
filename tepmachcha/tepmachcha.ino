@@ -19,8 +19,6 @@ void setup (void)
 		Serial.begin (57600); // Begin debug serial
     fonaSerial.begin (4800); //  Open a serial interface to FONA
 
-		//Serial.println (F(DEVICE));
-		//Serial.println ((prog_char *)DEVICE_STR);
 		Serial.println ((__FlashStringHelper*)DEVICE_STR);
 
 		Serial.print (F("Battery: "));
@@ -338,8 +336,9 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
 boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
 {
-    char json[132];
+    char json[142];
 
+    // 109 + vars
     sprintf_P(json,
       (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
         SENSOR_HEIGHT - streamHeight,
@@ -354,8 +353,9 @@ boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
 
 boolean dweetPostFota(boolean status)
 {
-    char json[64];
+    char json[66];
 
+    // 43 + vars
     sprintf_P(json,
       (prog_char*)F("{\"filename\":\"%s\",\"size\":%d,\"status\":%d,\"error\":%d}"),
         file_name,
@@ -366,12 +366,11 @@ boolean dweetPostFota(boolean status)
 }
 
 
-//boolean dweetPost (const __FlashStringHelper *endpoint, char *postData)
 boolean dweetPost (prog_char *endpoint, char *postData)
 {
     uint16_t statusCode;
     uint16_t dataLen;
-    char url[60];
+    char url[72];
     DEBUG_RAM
 
     // HTTP POST headers
@@ -381,7 +380,7 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
 
-    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint);
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint); // 48 + endpoint
     fona.sendCheckReply (url, OK);
 
     // json data

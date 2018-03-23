@@ -1,5 +1,14 @@
 #include "tepmachcha.h"
 
+// call into bootloader jumptable at top of flash
+#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
+#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
+#define EEPROM_FILENAME_ADDR (E2END - 1)
+
+extern Fat16 file;
+extern char file_name[13];              // 8.3
+extern uint16_t file_size;
+
 void testSMS() {
   fona.sendSMS(TESTPHONE, "hello from tepmachcha");
 }

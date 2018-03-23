@@ -1,5 +1,10 @@
 #include "tepmachcha.h"
 
+// call into bootloader jumptable at top of flash
+#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
+#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
+#define EEPROM_FILENAME_ADDR (E2END - 1)
+
 uint8_t error;
 const uint8_t CHIP_SELECT = SS;  // SD chip select pin (SS = pin 10)
 SdCard card;

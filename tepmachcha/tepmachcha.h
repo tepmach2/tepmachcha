@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.7.1"
+#define VERSION "2.7.2"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration
@@ -70,18 +70,10 @@
 // Note: C compiler concatenates adjacent strings
 #define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
 
-// call into bootloader jumptable at top of flash
-#define write_flash_page (*((void(*)(const uint32_t address))(0x7ffa/2)))
-#define flash_firmware (*((void(*)(const char *))(0x7ffc/2)))
-#define EEPROM_FILENAME_ADDR (E2END - 1)
-
 // tepmachcha
 extern const char DEVICE_STR[] PROGMEM;
 
 // File
-extern const uint8_t CHIP_SELECT;  // SD chip select pin (SS = 10)
-extern SdCard card;
-extern Fat16 file;
 extern char file_name[13];              // 8.3
 extern uint16_t file_size;
 

@@ -246,6 +246,16 @@ void smsParse(int8_t NumSMS)
     Serial.println (F(":"));
     Serial.println (smsBuffer);
 
+    // BEEPASSWORD
+    if (strcmp_P(smsBuffer, (prog_char*)F(BEEPASSWORD)) == 0)        //  XBee password...
+    {
+        XBeeOn();
+        XBeeOnMessage(smsBuffer);
+        fona.sendSMS(smsSender, smsBuffer);  //  Tell the sender what you've done
+        Serial.println (F("XBee turned on by SMS."));
+        return;
+    }
+
     // FOTAPASSWD <filename> <filesize>
     if (strncmp_P(smsBuffer, (prog_char*)F(FOTAPASSWORD), sizeof(FOTAPASSWORD)-1) == 0) //  FOTA password...
     {
@@ -269,8 +279,7 @@ void smsParse(int8_t NumSMS)
         uint8_t status;
         if (!(status = firmwareGet()))   // If at first we dont succeed
         {
-          fonaOn();                      // try again
-          status = firmwareGet();
+          fonaOff(); fonaOn(); status = firmwareGet(); // try again
         }
 
         dweetPostFota(status);
@@ -303,24 +312,16 @@ void smsParse(int8_t NumSMS)
     if (strcmp_P(smsBuffer, (prog_char*)F(PINGPASSWORD)) == 0)        //  PING password...
     {
         Serial.println(F("PING"));
-        dweetPostFota(true);
+        dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
 
-        //sprintf_P(smsBuffer, DEVICE_STR),
-        //sprintf_P(smsBuffer + sizeof(DEVICE), (prog_char *)F(" v:%d c:%d h:%d"),
-          //batteryRead(), solarCharging(), sonarRead());
-        //sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
-          //batteryRead(), solarCharging(), sonarRead());
-        //fona.sendSMS(smsSender, smsBuffer);
+        /*
+        sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
+          batteryRead(), solarCharging(), sonarRead());
+        fona.sendSMS(smsSender, smsBuffer);
+        */
+        return;
     }
 
-    // BEEPASSWORD
-    if (strcmp_P(smsBuffer, (prog_char*)F(BEEPASSWORD)) == 0)        //  XBee password...
-    {
-        XBeeOn();
-        XBeeOnMessage(smsBuffer);
-        fona.sendSMS(smsSender, smsBuffer);  //  Tell the sender what you've done
-        Serial.println (F("XBee turned on by SMS."));
-    }
 }
 
 
