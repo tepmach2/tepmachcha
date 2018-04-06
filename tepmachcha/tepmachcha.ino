@@ -70,7 +70,6 @@ void setup (void)
 				sleep.sleepInterrupt (RTCINTA, FALLING); //  Sleep; wake on falling voltage on RTC pin
 		}
 
-
 		// We will use the FONA to get the current time to set the Stalker's RTC
 		if (fonaOn())
     {
@@ -138,17 +137,7 @@ void loop (void)
     // Check if it is time to send a scheduled reading
 		if (now.minute() % INTERVAL == 0)
 		{
-      int16_t streamHeight = 0;
-
-      // take a sonar reading, retry if it's obviously garbage
-      for (uint8_t tries = 3;
-        (streamHeight <= 0 || (SENSOR_HEIGHT - streamHeight) < SENSOR_MIN)
-        && tries; --tries)
-      {
-        streamHeight = sonarRead();
-        delay(1000);
-      }
-
+      int16_t streamHeight = sonarStreamHeight(sonarRead());
       upload (streamHeight, resetClock);
     }
 
@@ -184,7 +173,6 @@ void upload(int16_t streamHeight, boolean resetClock)
   Serial.print (F("Solar: "));
   Serial.print (solarV);
 
-  //if (fonaOn())
   if (fonaOn() || (fonaOff(), fonaOn())) // try twice
   {
 
@@ -334,15 +322,15 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 }
 
 
-boolean dweetPostStatus(int16_t streamHeight, uint16_t solar, uint16_t voltage)
+boolean dweetPostStatus(int16_t distance, uint16_t solar, uint16_t voltage)
 {
     char json[140];
 
     // 109 + vars
     sprintf_P(json,
       (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
-        SENSOR_HEIGHT - streamHeight,
-        streamHeight,
+        distance,
+        sonarStreamHeight(distance),
         solar,
         voltage,
         millis()/1000,
@@ -380,7 +368,8 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     fona.sendCheckReply (F("AT+HTTPPARA=\"UA\",\"Tepmachcha/" VERSION "\""), OK);
     fona.sendCheckReply (F("AT+HTTPPARA=\"CONTENT\",\"application/json\""), OK);
 
-    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint); // 48 + endpoint
+    // 48 + endpoint
+    sprintf_P(url, (prog_char*)F("AT+HTTPPARA=\"URL\",\"dweet.io/dweet/quietly/for/%S\""), endpoint);
     fona.sendCheckReply (url, OK);
 
     // json data

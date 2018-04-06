@@ -1,7 +1,7 @@
 #include "arduino-mk.h"
 
 //  Tepmachcha version number
-#define VERSION "2.7.3"
+#define VERSION "2.8.0"
 
 //  Customize this for each installation
 #include "config.h"           //  Site configuration

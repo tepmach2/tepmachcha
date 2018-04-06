@@ -105,7 +105,7 @@ int16_t internalTemp(void)
   // The internal temperature has to be used
   // with the internal reference of 1.1V.
   // Channel 8 can not be selected with
-  // the analogRead function yet.
+  // analogRead() yet.
 
   // Set the internal reference and mux.
   ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
@@ -125,7 +125,7 @@ int16_t internalTemp(void)
   }
 
   // offset ~324.31, scale by 1/1.22 to give C
-  return (wADC - (324*64) ) / 78;    // 64/78 ~= 1/1.22
+  return (wADC - (uint16_t)(324.31*64) ) / 78;    // 64/78 ~= 1/1.22
 }
 
 

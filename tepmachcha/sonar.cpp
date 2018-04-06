@@ -1,6 +1,7 @@
 // Maxbotix Sonar
 
-#define SAMPLES 11
+#define SONAR_SAMPLES 11
+#define SONAR_RETRIES 33
 
 #include "tepmachcha.h"
 
@@ -49,6 +50,13 @@ int16_t mode (int16_t *sample, uint8_t n)
 }
 
 
+// check if a sonar reading is within bounds
+boolean sonarValidReading(int16_t reading)
+{
+    return (reading > SONAR_MIN && reading < SONAR_MAX);
+}
+
+
 // Read Maxbotix MB7363 samples in free-run/filtered mode.
 // Don't call this more than 6Hz due to min. 160ms sonar cycle time
 void sonarSamples(int16_t *sample)
@@ -57,23 +65,38 @@ void sonarSamples(int16_t *sample)
     wait (1000);
 
     // wait for and discard first sample (160ms)
-    pulseIn (PING, HIGH);
+    //pulseIn (PING, HIGH);
+    //wait (10);
 
     // read subsequent (filtered) samples into array
-    for (uint8_t sampleCount = 0; sampleCount < SAMPLES; sampleCount++)
+    // discard up to SONAR_RETRIES invalid readings
+    uint8_t retries = SONAR_RETRIES;
+    uint8_t sampleCount = 0;
+    while (sampleCount < SONAR_SAMPLES)
     {
-      // After the PWM pulse, the sonar transmits the reading
-      // on the serial pin, which takes ~10ms
-      wait (10);
-
       // 1 µs pulse = 1mm distance
-      sample[sampleCount] = pulseIn (PING, HIGH);
+      int16_t reading = pulseIn (PING, HIGH);
 
       // ~16 chars at 57600baud ~= 3ms delay
       Serial.print (F("Sample "));
       Serial.print (sampleCount);
       Serial.print (F(": "));
-      Serial.println (sample[sampleCount]);
+      Serial.print (reading);
+
+      // After the PWM pulse, the sonar transmits the reading
+      // on the serial pin, which takes ~10ms
+      wait (15);
+
+      if (retries && !sonarValidReading(reading))
+      {
+        Serial.println (F(" retry"));
+        retries--;
+        continue;
+      }
+
+      Serial.println (F(" accept"));
+      sample[sampleCount] = reading;
+      sampleCount++;
     }
 
     digitalWrite (RANGE, LOW);   // sonar off
@@ -81,32 +104,45 @@ void sonarSamples(int16_t *sample)
 
 
 // One failure mode of the sonar -- if, for example, it is not getting enough power
-// is to return the minimum distance the sonar can detect; 50cm for 10m sonars
-// or 30cm for 5m.
-// This is also waht happens if something blocks the unit.
+// is to return the minimum distance the sonar can detect; 500mm for 10m sonars
+// or 300mm for 5m.
+// This is also what happens if something blocks the unit.
 
 int16_t sonarRead (void)
 {
-    int16_t sample[SAMPLES];
+    int16_t sample[SONAR_SAMPLES];
+    int16_t distance;
 
-    // read from sensor into sample array
-		sonarSamples (sample);
+    // Try 3 times to get a valid reading
+    for (uint8_t tries = 3; tries; tries--)
+    {
+      // read from sensor into sample array
+      sonarSamples (sample);
 
-    // sort the samples
-		sort (sample, SAMPLES);
+      // sort the samples
+      sort (sample, SONAR_SAMPLES);
 
-    // take the mode, or median
-    int16_t sampleMode = mode (sample, SAMPLES);
+      // take the mode, or median
+      distance = mode (sample, SONAR_SAMPLES);
 
+      Serial.print (F("Surface distance from sensor is "));
+      Serial.print (distance);
+      Serial.println (F("mm."));
+
+      if (sonarValidReading(distance))
+        break;
+    }
+
+    return distance;
+}
+
+
+int16_t sonarStreamHeight(int16_t distance)
+{
     // convert to cm and offset by hardcoded stream-bed height
-    int16_t streamHeight = (SENSOR_HEIGHT - (sampleMode / 10));
+    int16_t streamHeight = (SENSOR_HEIGHT - (distance / 10));
 
-    Serial.print (F("Surface distance from sensor is "));
-    Serial.print (sampleMode);
-    Serial.println (F("mm."));
     Serial.print (F("Calculated surface height is "));
     Serial.print (streamHeight);
     Serial.println (F("cm."));
-
-    return streamHeight;
 }

@@ -321,7 +321,6 @@ void smsParse(int8_t NumSMS)
         */
         return;
     }
-
 }
 
 

@@ -20,6 +20,7 @@ boolean dweetPost (prog_char *, char *);
 
 // sonar
 int16_t sonarRead(void);
+int16_t sonarStreamHeight(int16_t);
 
 // stalker
 uint16_t batteryRead(void);
