@@ -22,7 +22,7 @@ void sort (int16_t *a, uint8_t n)
 }
 
 
-// Calculate mode, or median of sorted samples
+// Calculate mode, or fall back to median of sorted samples
 int16_t mode (int16_t *sample, uint8_t n)
 {
     int16_t mode;
@@ -50,7 +50,11 @@ int16_t mode (int16_t *sample, uint8_t n)
 }
 
 
-// check if a sonar reading is within bounds
+// Check if a sonar reading is within bounds
+// One failure mode of the sonar -- if, for example, it is not getting enough power
+// is to return the minimum distance the sonar can detect; 500mm for 10m sonars
+// or 300mm for 5m.
+// This is also what happens if something blocks the unit.
 boolean sonarValidReading(int16_t reading)
 {
     return (reading > SONAR_MIN && reading < SONAR_MAX);
@@ -61,6 +65,9 @@ boolean sonarValidReading(int16_t reading)
 // Don't call this more than 6Hz due to min. 160ms sonar cycle time
 void sonarSamples(int16_t *sample)
 {
+    uint8_t retries = SONAR_RETRIES;
+    uint8_t sampleCount = 0;
+
     digitalWrite (RANGE, HIGH);  // sonar on
     wait (1000);
 
@@ -70,8 +77,6 @@ void sonarSamples(int16_t *sample)
 
     // read subsequent (filtered) samples into array
     // discard up to SONAR_RETRIES invalid readings
-    uint8_t retries = SONAR_RETRIES;
-    uint8_t sampleCount = 0;
     while (sampleCount < SONAR_SAMPLES)
     {
       // 1 µs pulse = 1mm distance
@@ -84,13 +89,14 @@ void sonarSamples(int16_t *sample)
       Serial.print (reading);
 
       // After the PWM pulse, the sonar transmits the reading
-      // on the serial pin, which takes ~10ms
+      // on the serial pin, which takes ~10ms, we skip this.
       wait (15);
 
-      if (retries && !sonarValidReading(reading))
+      if (!sonarValidReading(reading) && retries)
       {
-        Serial.println (F(" retry"));
+        Serial.println (F(" discard"));
         retries--;
+        wait (200);
         continue;
       }
 
@@ -103,18 +109,16 @@ void sonarSamples(int16_t *sample)
 }
 
 
-// One failure mode of the sonar -- if, for example, it is not getting enough power
-// is to return the minimum distance the sonar can detect; 500mm for 10m sonars
-// or 300mm for 5m.
-// This is also what happens if something blocks the unit.
 
+// Take a set of readings and process them into a single estimate
 int16_t sonarRead (void)
 {
     int16_t sample[SONAR_SAMPLES];
     int16_t distance;
+    uint8_t tries;
 
     // Try 3 times to get a valid reading
-    for (uint8_t tries = 3; tries; tries--)
+    do
     {
       // read from sensor into sample array
       sonarSamples (sample);
@@ -129,14 +133,13 @@ int16_t sonarRead (void)
       Serial.print (distance);
       Serial.println (F("mm."));
 
-      if (sonarValidReading(distance))
-        break;
-    }
+    } while (!sonarValidReading(distance) && tries++ < 3);
 
     return distance;
 }
 
 
+// Convert sonar distance (mm) into height of water in the stream (cm)
 int16_t sonarStreamHeight(int16_t distance)
 {
     // convert to cm and offset by hardcoded stream-bed height
@@ -145,4 +148,6 @@ int16_t sonarStreamHeight(int16_t distance)
     Serial.print (F("Calculated surface height is "));
     Serial.print (streamHeight);
     Serial.println (F("cm."));
+
+    return streamHeight;
 }

@@ -16,7 +16,7 @@ boolean dmisPost(int, boolean,  uint16_t);
 boolean ews1294Post (int, boolean, uint16_t);
 boolean dweetPostStatus (int, uint16_t, uint16_t);
 boolean dweetPostFota (boolean);
-boolean dweetPost (prog_char *, char *);
+boolean dweetPost (PROGMEM char*, char *);
 
 // sonar
 int16_t sonarRead(void);

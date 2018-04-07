@@ -334,10 +334,10 @@ boolean firmwareGet(void)
 
 
 void reflash (void) {
-    Serial.println(F("updating eeprom...."));
+    Serial.println(F("update eeprom"));
     eepromWrite();
 
-    Serial.println(F("reflashing...."));
+    Serial.println(F("reflash"));
 
     delay(100);
 

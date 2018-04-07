@@ -1,6 +1,5 @@
 //  Customize these items for each installation
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
 #ifndef SECRETS
 
 #define STALKERv30
