@@ -72,7 +72,7 @@ void test(void)
       Serial.print (F("fona batt: "));
       Serial.println (fonaBattery());
       Serial.print(F("Solar: "));
-      Serial.println(solarCharging());
+      Serial.println(solarCharging(solarVoltage()));
       break;
     }
     case 'O': {
@@ -112,8 +112,7 @@ void test(void)
       break;
     }
     case 'd': {
-      //dmisPost(sonarRead(), solarCharging(), fonaBattery());
-      ews1294Post(sonarRead(), solarCharging(), fonaBattery());
+      ews1294Post(sonarRead(), solarCharging(solarVoltage()), fonaBattery());
       break;
     }
     case 'o': {

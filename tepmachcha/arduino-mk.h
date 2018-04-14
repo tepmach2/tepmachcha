@@ -25,7 +25,7 @@ int16_t sonarStreamHeight(int16_t);
 // stalker
 uint16_t batteryRead(void);
 uint16_t solarVoltage(void);
-boolean solarCharging(void);
+boolean solarCharging(uint16_t);
 void wait (uint32_t);
 int16_t internalTemp(void);
 uint16_t freeRam(void);

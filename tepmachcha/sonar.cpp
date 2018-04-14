@@ -144,7 +144,7 @@ int16_t sonarStreamHeight(int16_t distance)
     // convert to cm and offset by hardcoded stream-bed height
     int16_t streamHeight = (SENSOR_HEIGHT - (distance / 10));
 
-    Serial.print (F("Calculated surface height is "));
+    Serial.print (F("Stream height: "));
     Serial.print (streamHeight);
     Serial.println (F("cm."));
 

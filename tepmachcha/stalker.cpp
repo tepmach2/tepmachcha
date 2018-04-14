@@ -68,17 +68,10 @@ uint16_t batteryRead(void)
 // CHARGING 550-   180-  ( vbatt(3.6v+) / (10M + 2M)/2M ) => 0.6v
 // SLEEPING 900+   220+  ( vbatt ) => 3.6v -> 4.2v
 //
-boolean solarCharging(void)
+boolean solarCharging(uint16_t solar)
 {
-    uint16_t solar;
-
-    solar = solarVoltage();
     // despite calcs above, measurements show voltage of ~0.51 when charging
-    if ( solar > 160 && solar <= 250 )    // charging, 3.3v analogue ref
-    {
-       return true;
-    }
-    return false;
+    return ( solar > 160 && solar <= 250 );    // charging, 3.3v analogue ref
 }
 
 uint16_t solarVoltage(void)

@@ -140,8 +140,7 @@ void loop (void)
     // Check if it is time to send a scheduled reading
 		if (now.minute() % INTERVAL == 0)
 		{
-      int16_t streamHeight = sonarStreamHeight(sonarRead());
-      upload (streamHeight, resetClock);
+      upload (sonarRead(), resetClock);
     }
 
     XBee();
@@ -159,31 +158,32 @@ void loop (void)
 }
 
 
-void upload(int16_t streamHeight, boolean resetClock)
+void upload(int16_t distance, boolean resetClock)
 {
   uint8_t status;
-  boolean charging;
   uint16_t voltage;
   uint16_t solarV;
+  boolean charging;
 
-  charging = solarCharging();
   voltage = batteryRead();
   solarV = solarVoltage();
+  charging = solarCharging(solarV);
 
   Serial.print (F("Battery: "));
   Serial.print (voltage);
   Serial.println (F("mV"));
   Serial.print (F("Solar: "));
-  Serial.print (solarV);
+  Serial.println (solarV);
 
   if (fonaOn() || (fonaOff(), fonaOn())) // try twice
   {
+    int16_t streamHeight = sonarStreamHeight(distance);
 
     if (!(status = ews1294Post(streamHeight, charging, voltage)))
     {
       status = ews1294Post(streamHeight, charging, voltage);    // try once more
     }
-    status &= dweetPostStatus(streamHeight, solarV, voltage);
+    status &= dweetPostStatus(distance, solarV, voltage);
 
     // reset fona if upload failed, so SMS works
     if (!status)
@@ -329,12 +329,13 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 boolean dweetPostStatus(int16_t distance, uint16_t solar, uint16_t voltage)
 {
     char json[136];
+    uint16_t streamHeight = sonarStreamHeight(distance);
 
     // 102 + vars
     sprintf_P(json,
       (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
         distance,
-        sonarStreamHeight(distance),
+        streamHeight,
         solar,
         voltage,
         millis()/1000,
