@@ -71,7 +71,9 @@ void test(void)
       Serial.println (F("mV"));
       Serial.print (F("fona batt: "));
       Serial.println (fonaBattery());
-      Serial.print(F("Solar: "));
+      Serial.print(F("SolarV: "));
+      Serial.println(solarVoltage());
+      Serial.print(F("SolarCharging: "));
       Serial.println(solarCharging(solarVoltage()));
       break;
     }

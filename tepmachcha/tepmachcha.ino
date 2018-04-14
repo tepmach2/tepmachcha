@@ -236,11 +236,13 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
                               strlen(post_data),
                               &status_code,
                               &response_length))
-    // flush response
-    while (response_length > 0)
     {
-      fonaFlush();
-      response_length--;
+      // flush response
+      while (response_length > 0)
+      {
+        fonaFlush();
+        response_length--;
+      }
     }
 
     fona.HTTP_POST_end();
@@ -398,7 +400,15 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     Serial.print (F("http code: ")); Serial.println (statusCode);
     Serial.print (F("reply len: ")); Serial.println (dataLen);
 
-    fonaFlush();
+    if (fona.HTTP_readall(&dataLen))
+    {
+      // flush response
+      while (dataLen > 0)
+      {
+        fonaFlush();
+        dataLen--;
+      }
+    }
     fona.HTTP_term();
 
     return (statusCode == 204);

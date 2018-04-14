@@ -83,9 +83,6 @@ uint16_t solarVoltage(void)
       solar += analogRead(SOLAR);
     solar = solar / 64;
 
-    Serial.print (F("solar analog: "));
-    Serial.println (solar);
-
     return solar;
 }
 
