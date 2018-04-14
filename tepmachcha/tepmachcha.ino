@@ -13,18 +13,6 @@ static void rtcIRQ (void)
 void setup (void)
 {
 		pinMode (WATCHDOG, INPUT_PULLUP);
-
-		Wire.begin();         // Begin I2C interface
-		RTC.begin();          // Begin RTC
-		Serial.begin (57600); // Begin debug serial
-    fonaSerial.begin (4800); //  Open a serial interface to FONA
-
-		Serial.println ((__FlashStringHelper*)DEVICE_STR);
-
-		Serial.print (F("Battery: "));
-		Serial.print (batteryRead());
-		Serial.println (F("mV"));
-
     // Set output pins (default is input)
 		pinMode (BEEPIN, OUTPUT);
 		pinMode (RANGE, OUTPUT);
@@ -43,17 +31,31 @@ void setup (void)
     digitalWrite (BUS_PWR, HIGH);        // Peripheral bus on
 #endif
 
-    // set RTC interrupt handler and enable interrupts
-		attachInterrupt (RTCINTA, rtcIRQ, FALLING);
-		interrupts();
+		Wire.begin();         // Begin I2C interface
+		RTC.begin();          // Begin RTC
+		Serial.begin (57600); // Begin debug serial
+    fonaSerial.begin (4800); //  Open a serial interface to FONA
 
-		/*  If the voltage at startup is less than 3.5V, we assume the battery died in the field
-		 *  and the unit is attempting to restart after the panel charged the battery enough to
-		 *  do so. However, running the unit with a low charge is likely to just discharge the
-		 *  battery again, and we will never get enough charge to resume operation. So while the
-		 *  measured voltage is less than 3.5V, we will put the unit to sleep and wake once per 
-		 *  hour to check the charge status.
-		 */
+
+		Serial.println ((__FlashStringHelper*)DEVICE_STR);
+
+		Serial.print (F("Battery: "));
+		Serial.print (batteryRead());
+		Serial.println (F("mV"));
+
+    DEBUG_RAM
+
+    // set RTC interrupt handler and enable interrupts
+		//attachInterrupt (RTCINTA, rtcIRQ, FALLING);
+		//interrupts();
+
+		// If the voltage at startup is less than 3.5V, we assume the battery died in the field
+		// and the unit is attempting to restart after the panel charged the battery enough to
+		// do so. However, running the unit with a low charge is likely to just discharge the
+		// battery again, and we will never get enough charge to resume operation. So while the
+		// measured voltage is less than 3.5V, we will put the unit to sleep and wake once per 
+		// hour to check the charge status.
+		//
     wait(1000);
 		while (batteryRead() < 3500)
 		{
@@ -88,15 +90,16 @@ void setup (void)
     fonaOff();
 
 		now = RTC.now();    //  Get the current time from the RTC
-
-		RTC.enableInterrupts (EveryMinute);  //  RTC will interrupt every minute
-		RTC.clearINTStatus();                //  Clear any outstanding interrupts
 		
     // turn XBee on for an hour
     XBeeOn();
     char buffer[32]; // only 20 required currently
     XBeeOnMessage(buffer);
     Serial.println(buffer);
+
+		RTC.enableInterrupts (EveryMinute);  //  RTC will interrupt every minute
+		RTC.clearINTStatus();                //  Clear any outstanding interrupts
+		sleep.sleepInterrupt (RTCINTA, FALLING); //  Sleep; wake on falling voltage on RTC pin
 }
 
 
@@ -226,7 +229,8 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     //fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), F("OK"));  //  Turn on redirects (for SSL)
 
     // Send the POST request we have constructed
-    if (fona.HTTP_POST_start ("ews1294.info/api/v1/sensorapi",
+    char url[30]; strcpy_P(url, (prog_char*)F("ews1294.info/api/v1/sensorapi"));
+    if (fona.HTTP_POST_start (url,
                               F("application/x-www-form-urlencoded"),
                               (uint8_t *)post_data,
                               strlen(post_data),
@@ -324,9 +328,9 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
 boolean dweetPostStatus(int16_t distance, uint16_t solar, uint16_t voltage)
 {
-    char json[140];
+    char json[136];
 
-    // 109 + vars
+    // 102 + vars
     sprintf_P(json,
       (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
         distance,

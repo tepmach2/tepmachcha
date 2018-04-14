@@ -115,10 +115,9 @@ int16_t sonarRead (void)
 {
     int16_t sample[SONAR_SAMPLES];
     int16_t distance;
-    uint8_t tries;
 
     // Try 3 times to get a valid reading
-    do
+    uint8_t tries = 3; do
     {
       // read from sensor into sample array
       sonarSamples (sample);
@@ -133,7 +132,7 @@ int16_t sonarRead (void)
       Serial.print (distance);
       Serial.println (F("mm."));
 
-    } while (!sonarValidReading(distance) && tries++ < 3);
+    } while (!sonarValidReading(distance) && --tries);
 
     return distance;
 }

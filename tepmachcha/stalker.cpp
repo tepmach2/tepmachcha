@@ -128,15 +128,19 @@ int16_t internalTemp(void)
   return (wADC - (uint16_t)(324.31*64) ) / 78;    // 64/78 ~= 1/1.22
 }
 
+extern int __heap_start;
+extern void *__brkval;
 
 uint16_t freeRam (void) {
-  extern int __heap_start;
-  extern void *__brkval;
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
 void debugFreeRam(void) {
-  Serial.print (F("Ram free: "));
-  Serial.println (freeRam());
+  Serial.print (F("Ram: "));
+  Serial.print (freeRam());
+  Serial.print (F(" SP: "));
+  Serial.print (SP);
+  Serial.print (F(" heap: "));
+  Serial.println ((uint16_t)&__heap_start);
 }
