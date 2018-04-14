@@ -228,7 +228,8 @@ char *parseFilename(char *b)
 
 #define SIZEOF_SMS 80
 #define SIZEOF_SMS_SENDER 18
-void smsParse(int8_t NumSMS)
+// don't inline, or else the buffers get put above the stack
+void __attribute__ ((noinline)) smsParse(int8_t NumSMS)
 {
 		char smsBuffer[SIZEOF_SMS];
 		char smsSender[SIZEOF_SMS_SENDER];

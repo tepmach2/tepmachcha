@@ -160,7 +160,7 @@ void loop (void)
 
 void upload(int16_t distance, boolean resetClock)
 {
-  uint8_t status;
+  uint8_t status = 0;
   uint16_t voltage;
   uint16_t solarV;
   boolean charging;
@@ -179,18 +179,17 @@ void upload(int16_t distance, boolean resetClock)
   {
     int16_t streamHeight = sonarStreamHeight(distance);
 
-    if (!(status = ews1294Post(streamHeight, charging, voltage)))
+    uint8_t attempts = 2; do
     {
-      status = ews1294Post(streamHeight, charging, voltage);    // try once more
-    }
+      status = ews1294Post(streamHeight, charging, voltage);
+    } while (!status && --attempts);
+
     status &= dweetPostStatus(distance, solarV, voltage);
 
     // reset fona if upload failed, so SMS works
     if (!status)
     {
-      fonaOff();
-      wait(2000);
-      fonaOn();
+      fonaOff(); wait(2000); fonaOn();
     }
 
     // process SMS messages
@@ -205,11 +204,16 @@ void upload(int16_t distance, boolean resetClock)
 }
 
 
-boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
+// Don't allow ewsPost() to be inlined, as the compiler will also attempt to optimize stack
+// allocation, and ends up swallowing an extra ~128 bytes at the top of the stack.
+// ie it moves the beginning of the stack (as seen in setup()) down ~128 bytes,
+// leaving the rest of the app short of ram
+boolean __attribute__ ((noinline)) ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;
     uint16_t response_length = 0;
     char post_data[200];
+
     DEBUG_RAM
 
     // Construct the body of the POST request:
