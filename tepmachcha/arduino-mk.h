@@ -7,6 +7,7 @@
  * there may be a new arduino-preproc command that uses ctags - investigate
  */
 #include <Arduino.h>
+#include "secrets/btb1.h"
 
 // tepmachcha
 void setup(void);
@@ -19,8 +20,10 @@ boolean dweetPostFota (boolean);
 boolean dweetPost (PROGMEM char*, char *);
 
 // sonar
+extern int16_t sonarLastGoodReading;
 int16_t sonarRead(void);
 int16_t sonarStreamHeight(int16_t);
+boolean sonarValidReading(int16_t);
 
 // stalker
 uint16_t batteryRead(void);

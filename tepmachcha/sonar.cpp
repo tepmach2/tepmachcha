@@ -1,9 +1,10 @@
 // Maxbotix Sonar
+#include "tepmachcha.h"
 
 #define SONAR_SAMPLES 11
 #define SONAR_RETRIES 33
 
-#include "tepmachcha.h"
+int16_t sonarLastGoodReading = SENSOR_HEIGHT * 10;
 
 // insertion sort: https://en.wikipedia.org/wiki/Insertion_sort
 void sort (int16_t *a, uint8_t n)

@@ -92,6 +92,8 @@ boolean fonaGSMOn(void) {
       fonaFlush();
       return true;
     }
+    //else if (status == 0)  // given up
+    //break;
   }
   Serial.println (F("timed out. Check SIM, antenna, signal."));
   return false;

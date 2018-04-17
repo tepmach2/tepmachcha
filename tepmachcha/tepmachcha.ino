@@ -164,6 +164,22 @@ void upload(int16_t distance, boolean resetClock)
   uint16_t voltage;
   uint16_t solarV;
   boolean charging;
+  int16_t streamHeight;
+
+  // At this point the distance is the result of multiple readings, while
+  // rejecting up to 75% of invalid readings.  If the result is still an invalid
+  // distance, we will report the last know good reading to EWS, but post the failed
+  // reading to dweet for diagnostics.
+  if ( sonarValidReading(distance) ) {
+    Serial.print("setting last known good: ");
+    Serial.println(distance);
+    sonarLastGoodReading = distance;
+    streamHeight = sonarStreamHeight(distance);
+  } else {
+    Serial.print("using last known good: ");
+    Serial.println(sonarLastGoodReading);
+    streamHeight = sonarStreamHeight(sonarLastGoodReading);
+  }
 
   voltage = batteryRead();
   solarV = solarVoltage();
@@ -175,9 +191,8 @@ void upload(int16_t distance, boolean resetClock)
   Serial.print (F("Solar: "));
   Serial.println (solarV);
 
-  if (fonaOn() || (fonaOff(), fonaOn())) // try twice
+  if (fonaOn() || (fonaOff(), delay(5000), fonaOn())) // try twice
   {
-    int16_t streamHeight = sonarStreamHeight(distance);
 
     uint8_t attempts = 2; do
     {
