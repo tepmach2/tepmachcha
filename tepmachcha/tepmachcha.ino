@@ -2,7 +2,6 @@
 
 const char DEVICE_STR[] PROGMEM = DEVICE;
 
-//boolean freshboot = true; // Newly rebooted
 Sleep sleep;              // Create the sleep object
 
 static void rtcIRQ (void)
@@ -12,8 +11,12 @@ static void rtcIRQ (void)
 
 void setup (void)
 {
-		pinMode (WATCHDOG, INPUT_PULLUP);
+    // set RTC interrupt handler
+		attachInterrupt (RTCINTA, rtcIRQ, FALLING);
+		//interrupts();
+
     // Set output pins (default is input)
+		pinMode (WATCHDOG, INPUT_PULLUP);
 		pinMode (BEEPIN, OUTPUT);
 		pinMode (RANGE, OUTPUT);
 		pinMode (FONA_KEY, OUTPUT);
@@ -31,23 +34,17 @@ void setup (void)
     digitalWrite (BUS_PWR, HIGH);        // Peripheral bus on
 #endif
 
-		Wire.begin();         // Begin I2C interface
-		RTC.begin();          // Begin RTC
 		Serial.begin (57600); // Begin debug serial
     fonaSerial.begin (4800); //  Open a serial interface to FONA
-
+		Wire.begin();         // Begin I2C interface
+		RTC.begin();          // Begin RTC
 
 		Serial.println ((__FlashStringHelper*)DEVICE_STR);
 
 		Serial.print (F("Battery: "));
 		Serial.print (batteryRead());
 		Serial.println (F("mV"));
-
     DEBUG_RAM
-
-    // set RTC interrupt handler and enable interrupts
-		//attachInterrupt (RTCINTA, rtcIRQ, FALLING);
-		//interrupts();
 
 		// If the voltage at startup is less than 3.5V, we assume the battery died in the field
 		// and the unit is attempting to restart after the panel charged the battery enough to
@@ -125,17 +122,6 @@ void loop (void)
     {
       resetClock = true;
     }
-    /*
-    // by soft reboot
-    if (!freshboot && now.hour() == 0 && now.minute() == 0)
-    {
-      Serial.println(F("reboot"));
-      WDTCSR = _BV(WDE);  // enable watchdog timer
-      while (1);          // wait until reset - should be 16 ms
-    } else {
-      freshboot = false;
-    }
-    */
 
     // Check if it is time to send a scheduled reading
 		if (now.minute() % INTERVAL == 0)
@@ -166,20 +152,19 @@ void upload(int16_t distance, boolean resetClock)
   boolean charging;
   int16_t streamHeight;
 
-  // At this point the distance is the result of multiple readings, while
-  // rejecting up to 75% of invalid readings.  If the result is still an invalid
-  // distance, we will report the last know good reading to EWS, but post the failed
-  // reading to dweet for diagnostics.
+  // At this point the measured distance is the result of multiple sets of readings,
+  // and within each set, up to 75% of individual readings may be rejected as invalid.
+  // If the result is STILL an invalid distance, we report the last-
+  // known-good reading to EWS, in order to avoid triggering alerts, etc,
+  // but post the failed reading to dweet, for diagnostics.
   if ( sonarValidReading(distance) ) {
     Serial.print("setting last known good: ");
-    Serial.println(distance);
     sonarLastGoodReading = distance;
-    streamHeight = sonarStreamHeight(distance);
   } else {
-    Serial.print("using last known good: ");
-    Serial.println(sonarLastGoodReading);
-    streamHeight = sonarStreamHeight(sonarLastGoodReading);
+    Serial.print("invalid, using last known good: ");
   }
+  Serial.println(sonarLastGoodReading);
+  streamHeight = sonarStreamHeight(sonarLastGoodReading);
 
   voltage = batteryRead();
   solarV = solarVoltage();

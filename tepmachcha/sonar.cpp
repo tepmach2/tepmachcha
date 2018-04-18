@@ -64,6 +64,7 @@ boolean sonarValidReading(int16_t reading)
 
 // Read Maxbotix MB7363 samples in free-run/filtered mode.
 // Don't call this more than 6Hz due to min. 160ms sonar cycle time
+// We reject up to SONAR_RETRIES invalid readings.
 void sonarSamples(int16_t *sample)
 {
     uint8_t retries = SONAR_RETRIES;
@@ -112,6 +113,7 @@ void sonarSamples(int16_t *sample)
 
 
 // Take a set of readings and process them into a single estimate
+// We retry 3 times attempting to get a valid result
 int16_t sonarRead (void)
 {
     int16_t sample[SONAR_SAMPLES];
