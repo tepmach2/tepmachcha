@@ -7,7 +7,6 @@
  * there may be a new arduino-preproc command that uses ctags - investigate
  */
 #include <Arduino.h>
-#include "secrets/btb1.h"
 
 // tepmachcha
 void setup(void);
@@ -56,6 +55,7 @@ void clockSet3(void);
 
 // XBee
 void XBeeOn();
+void XBeeOff(void);
 void XBeeOnMessage(char *);
 void XBee(void);
 
