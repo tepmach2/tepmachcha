@@ -247,9 +247,7 @@ void ftpEnd(void)
 }
 
 
-/*
- * Fetch firmware from FTP server to FONA's internal filesystem
- */
+// Fetch firmware from FTP server to FONA's internal filesystem
 boolean ftpGet(void)
 {
   // configure FTP
@@ -311,7 +309,7 @@ boolean firmwareGet(void)
 
   if (!ftpGet()) error = 10; else
   {
-    for (uint8_t tries=3 ;tries;tries--)
+    uint8_t tries=3 ; do
     {
       if (!fileInit()) error = 20; else
       {
@@ -326,7 +324,7 @@ boolean firmwareGet(void)
         }
       }
       fileClose();
-    }
+    } while (--tries);
   }
   Serial.println(F("fona copy failed"));
   return false;

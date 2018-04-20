@@ -68,17 +68,10 @@ uint16_t batteryRead(void)
 // CHARGING 550-   180-  ( vbatt(3.6v+) / (10M + 2M)/2M ) => 0.6v
 // SLEEPING 900+   220+  ( vbatt ) => 3.6v -> 4.2v
 //
-boolean solarCharging(void)
+boolean solarCharging(uint16_t solar)
 {
-    uint16_t solar;
-
-    solar = solarVoltage();
     // despite calcs above, measurements show voltage of ~0.51 when charging
-    if ( solar > 160 && solar <= 250 )    // charging, 3.3v analogue ref
-    {
-       return true;
-    }
-    return false;
+    return ( solar > 160 && solar <= 250 );    // charging, 3.3v analogue ref
 }
 
 uint16_t solarVoltage(void)
@@ -89,9 +82,6 @@ uint16_t solarVoltage(void)
     for (uint8_t i = 0; i < 64; i++) 
       solar += analogRead(SOLAR);
     solar = solar / 64;
-
-    Serial.print (F("solar analog: "));
-    Serial.println (solar);
 
     return solar;
 }
@@ -128,15 +118,19 @@ int16_t internalTemp(void)
   return (wADC - (uint16_t)(324.31*64) ) / 78;    // 64/78 ~= 1/1.22
 }
 
+extern int __heap_start;
+extern void *__brkval;
 
 uint16_t freeRam (void) {
-  extern int __heap_start;
-  extern void *__brkval;
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 
 void debugFreeRam(void) {
-  Serial.print (F("Ram free: "));
-  Serial.println (freeRam());
+  Serial.print (F("Ram: "));
+  Serial.print (freeRam());
+  Serial.print (F(" SP: "));
+  Serial.print (SP);
+  Serial.print (F(" heap: "));
+  Serial.println ((uint16_t)&__heap_start);
 }

@@ -1,9 +1,10 @@
 // Maxbotix Sonar
+#include "tepmachcha.h"
 
 #define SONAR_SAMPLES 11
 #define SONAR_RETRIES 33
 
-#include "tepmachcha.h"
+int16_t sonarLastGoodReading = SENSOR_HEIGHT * 10;
 
 // insertion sort: https://en.wikipedia.org/wiki/Insertion_sort
 void sort (int16_t *a, uint8_t n)
@@ -63,6 +64,7 @@ boolean sonarValidReading(int16_t reading)
 
 // Read Maxbotix MB7363 samples in free-run/filtered mode.
 // Don't call this more than 6Hz due to min. 160ms sonar cycle time
+// We reject up to SONAR_RETRIES invalid readings.
 void sonarSamples(int16_t *sample)
 {
     uint8_t retries = SONAR_RETRIES;
@@ -111,14 +113,14 @@ void sonarSamples(int16_t *sample)
 
 
 // Take a set of readings and process them into a single estimate
+// We retry 3 times attempting to get a valid result
 int16_t sonarRead (void)
 {
     int16_t sample[SONAR_SAMPLES];
     int16_t distance;
-    uint8_t tries;
 
     // Try 3 times to get a valid reading
-    do
+    uint8_t tries = 3; do
     {
       // read from sensor into sample array
       sonarSamples (sample);
@@ -133,7 +135,7 @@ int16_t sonarRead (void)
       Serial.print (distance);
       Serial.println (F("mm."));
 
-    } while (!sonarValidReading(distance) && tries++ < 3);
+    } while (!sonarValidReading(distance) && --tries);
 
     return distance;
 }
@@ -145,7 +147,7 @@ int16_t sonarStreamHeight(int16_t distance)
     // convert to cm and offset by hardcoded stream-bed height
     int16_t streamHeight = (SENSOR_HEIGHT - (distance / 10));
 
-    Serial.print (F("Calculated surface height is "));
+    Serial.print (F("Stream height: "));
     Serial.print (streamHeight);
     Serial.println (F("cm."));
 

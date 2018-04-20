@@ -19,13 +19,15 @@ boolean dweetPostFota (boolean);
 boolean dweetPost (PROGMEM char*, char *);
 
 // sonar
+extern int16_t sonarLastGoodReading;
 int16_t sonarRead(void);
 int16_t sonarStreamHeight(int16_t);
+boolean sonarValidReading(int16_t);
 
 // stalker
 uint16_t batteryRead(void);
 uint16_t solarVoltage(void);
-boolean solarCharging(void);
+boolean solarCharging(uint16_t);
 void wait (uint32_t);
 int16_t internalTemp(void);
 uint16_t freeRam(void);
@@ -53,6 +55,7 @@ void clockSet3(void);
 
 // XBee
 void XBeeOn();
+void XBeeOff(void);
 void XBeeOnMessage(char *);
 void XBee(void);
 

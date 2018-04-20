@@ -2,7 +2,6 @@
 
 const char DEVICE_STR[] PROGMEM = DEVICE;
 
-//boolean freshboot = true; // Newly rebooted
 Sleep sleep;              // Create the sleep object
 
 static void rtcIRQ (void)
@@ -12,20 +11,12 @@ static void rtcIRQ (void)
 
 void setup (void)
 {
-		pinMode (WATCHDOG, INPUT_PULLUP);
-
-		Wire.begin();         // Begin I2C interface
-		RTC.begin();          // Begin RTC
-		Serial.begin (57600); // Begin debug serial
-    fonaSerial.begin (4800); //  Open a serial interface to FONA
-
-		Serial.println ((__FlashStringHelper*)DEVICE_STR);
-
-		Serial.print (F("Battery: "));
-		Serial.print (batteryRead());
-		Serial.println (F("mV"));
+    // set RTC interrupt handler
+		attachInterrupt (RTCINTA, rtcIRQ, FALLING);
+		//interrupts();
 
     // Set output pins (default is input)
+		pinMode (WATCHDOG, INPUT_PULLUP);
 		pinMode (BEEPIN, OUTPUT);
 		pinMode (RANGE, OUTPUT);
 		pinMode (FONA_KEY, OUTPUT);
@@ -43,23 +34,31 @@ void setup (void)
     digitalWrite (BUS_PWR, HIGH);        // Peripheral bus on
 #endif
 
-    // set RTC interrupt handler and enable interrupts
-		attachInterrupt (RTCINTA, rtcIRQ, FALLING);
-		interrupts();
+		Serial.begin (57600); // Begin debug serial
+    fonaSerial.begin (4800); //  Open a serial interface to FONA
+		Wire.begin();         // Begin I2C interface
+		RTC.begin();          // Begin RTC
 
-		/*  If the voltage at startup is less than 3.5V, we assume the battery died in the field
-		 *  and the unit is attempting to restart after the panel charged the battery enough to
-		 *  do so. However, running the unit with a low charge is likely to just discharge the
-		 *  battery again, and we will never get enough charge to resume operation. So while the
-		 *  measured voltage is less than 3.5V, we will put the unit to sleep and wake once per 
-		 *  hour to check the charge status.
-		 */
+		Serial.println ((__FlashStringHelper*)DEVICE_STR);
+
+		Serial.print (F("Battery: "));
+		Serial.print (batteryRead());
+		Serial.println (F("mV"));
+    DEBUG_RAM
+
+		// If the voltage at startup is less than 3.5V, we assume the battery died in the field
+		// and the unit is attempting to restart after the panel charged the battery enough to
+		// do so. However, running the unit with a low charge is likely to just discharge the
+		// battery again, and we will never get enough charge to resume operation. So while the
+		// measured voltage is less than 3.5V, we will put the unit to sleep and wake once per 
+		// hour to check the charge status.
+		//
     wait(1000);
 		while (batteryRead() < 3500)
 		{
 				Serial.println (F("Low power sleep"));
 				Serial.flush();
-				digitalWrite (BEEPIN, HIGH);      //  Make sure XBee is powered off
+				XBeeOff();
 				digitalWrite (RANGE, LOW);        //  Make sure sonar is off
 #ifdef STALKERv31
         //digitalWrite (BUS_PWR, LOW);   //  Peripheral bus off
@@ -88,15 +87,16 @@ void setup (void)
     fonaOff();
 
 		now = RTC.now();    //  Get the current time from the RTC
-
-		RTC.enableInterrupts (EveryMinute);  //  RTC will interrupt every minute
-		RTC.clearINTStatus();                //  Clear any outstanding interrupts
 		
     // turn XBee on for an hour
     XBeeOn();
     char buffer[32]; // only 20 required currently
     XBeeOnMessage(buffer);
     Serial.println(buffer);
+
+		RTC.enableInterrupts (EveryMinute);  //  RTC will interrupt every minute
+		RTC.clearINTStatus();                //  Clear any outstanding interrupts
+		sleep.sleepInterrupt (RTCINTA, FALLING); //  Sleep; wake on falling voltage on RTC pin
 }
 
 
@@ -122,23 +122,11 @@ void loop (void)
     {
       resetClock = true;
     }
-    /*
-    // by soft reboot
-    if (!freshboot && now.hour() == 0 && now.minute() == 0)
-    {
-      Serial.println(F("reboot"));
-      WDTCSR = _BV(WDE);  // enable watchdog timer
-      while (1);          // wait until reset - should be 16 ms
-    } else {
-      freshboot = false;
-    }
-    */
 
     // Check if it is time to send a scheduled reading
 		if (now.minute() % INTERVAL == 0)
 		{
-      int16_t streamHeight = sonarStreamHeight(sonarRead());
-      upload (streamHeight, resetClock);
+      upload (sonarRead(), resetClock);
     }
 
     XBee();
@@ -156,38 +144,53 @@ void loop (void)
 }
 
 
-void upload(int16_t streamHeight, boolean resetClock)
+void upload(int16_t distance, boolean resetClock)
 {
-  uint8_t status;
-  boolean charging;
+  uint8_t status = 0;
   uint16_t voltage;
   uint16_t solarV;
+  boolean charging;
+  int16_t streamHeight;
 
-  charging = solarCharging();
+  // At this point the measured distance is the result of multiple sets of readings,
+  // and within each set, up to 75% of individual readings may be rejected as invalid.
+  // If the result is STILL an invalid distance, we report the last-
+  // known-good reading to EWS, in order to avoid triggering spurious alerts, etc,
+  // but post the failed reading to dweet, for diagnostics.
+  if ( sonarValidReading(distance) ) {
+    Serial.print("setting last known good: ");
+    sonarLastGoodReading = distance;
+  } else {
+    Serial.print("invalid, using last known good: ");
+  }
+  Serial.println(sonarLastGoodReading);
+  streamHeight = sonarStreamHeight(sonarLastGoodReading);
+
   voltage = batteryRead();
   solarV = solarVoltage();
+  charging = solarCharging(solarV);
 
   Serial.print (F("Battery: "));
   Serial.print (voltage);
   Serial.println (F("mV"));
   Serial.print (F("Solar: "));
-  Serial.print (solarV);
+  Serial.println (solarV);
 
-  if (fonaOn() || (fonaOff(), fonaOn())) // try twice
+  if (fonaOn() || (fonaOff(), delay(5000), fonaOn())) // try twice
   {
 
-    if (!(status = ews1294Post(streamHeight, charging, voltage)))
+    uint8_t attempts = 2; do
     {
-      status = ews1294Post(streamHeight, charging, voltage);    // try once more
-    }
-    status &= dweetPostStatus(streamHeight, solarV, voltage);
+      status = ews1294Post(streamHeight, charging, voltage);
+    } while (!status && --attempts);
 
-    // reset fona if upload failed, so SMS works
+    status &= dweetPostStatus(distance, solarV, voltage);
+
+    // if the upload failed the fona can be left in an undefined state,
+    // so we reboot it here to ensure SMS works
     if (!status)
     {
-      fonaOff();
-      wait(2000);
-      fonaOn();
+      fonaOff(); wait(2000); fonaOn();
     }
 
     // process SMS messages
@@ -202,11 +205,15 @@ void upload(int16_t streamHeight, boolean resetClock)
 }
 
 
-boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
+// Don't allow ewsPost() to be inlined, as the compiler will also attempt to optimize stack
+// allocation, and ends up preallocating at the top of the stack. ie it moves the beginning
+// of the stack (as seen in setup()) down ~200 bytes, leaving the rest of the app short of ram
+boolean __attribute__ ((noinline)) ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;
     uint16_t response_length = 0;
     char post_data[200];
+
     DEBUG_RAM
 
     // Construct the body of the POST request:
@@ -226,17 +233,20 @@ boolean ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
     //fona.sendCheckReply (F("AT+HTTPPARA=\"REDIR\",\"1\""), F("OK"));  //  Turn on redirects (for SSL)
 
     // Send the POST request we have constructed
-    if (fona.HTTP_POST_start ("ews1294.info/api/v1/sensorapi",
+    char url[30]; strcpy_P(url, (prog_char*)F("ews1294.info/api/v1/sensorapi"));
+    if (fona.HTTP_POST_start (url,
                               F("application/x-www-form-urlencoded"),
                               (uint8_t *)post_data,
                               strlen(post_data),
                               &status_code,
                               &response_length))
-    // flush response
-    while (response_length > 0)
     {
-      fonaFlush();
-      response_length--;
+      // flush response
+      while (response_length > 0)
+      {
+        fonaFlush();
+        response_length--;
+      }
     }
 
     fona.HTTP_POST_end();
@@ -324,13 +334,14 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
 
 boolean dweetPostStatus(int16_t distance, uint16_t solar, uint16_t voltage)
 {
-    char json[140];
+    char json[136];
+    uint16_t streamHeight = sonarStreamHeight(distance);
 
-    // 109 + vars
+    // 102 + vars
     sprintf_P(json,
       (prog_char*)F("{\"dist\":%d,\"streamHeight\":%d,\"solarV\":%d,\"voltage\":%d,\"uptime\":%ld,\"version\":\"" VERSION "\",\"internalTemp\":%d,\"freeRam\":%d}"),
         distance,
-        sonarStreamHeight(distance),
+        streamHeight,
         solar,
         voltage,
         millis()/1000,
@@ -393,7 +404,15 @@ boolean dweetPost (prog_char *endpoint, char *postData)
     Serial.print (F("http code: ")); Serial.println (statusCode);
     Serial.print (F("reply len: ")); Serial.println (dataLen);
 
-    fonaFlush();
+    if (fona.HTTP_readall(&dataLen))
+    {
+      // flush response
+      while (dataLen > 0)
+      {
+        fonaFlush();
+        dataLen--;
+      }
+    }
     fona.HTTP_term();
 
     return (statusCode == 204);

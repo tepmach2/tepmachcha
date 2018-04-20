@@ -85,7 +85,8 @@ boolean fonaGSMOn(void) {
   {
     uint8_t status = fona.getNetworkStatus();
     wait (500);
-    if (status == 1)  // replace with (status == 1 || status == 5) to allow roaming
+    //if (status == 1)  // replace with (status == 1 || status == 5) to allow roaming
+    if (status == 1 || status == 5)
     {
       Serial.println(F("done."));
       fona.sendCheckReply (F("AT+COPS?"), OK);  // Network operator
@@ -228,7 +229,8 @@ char *parseFilename(char *b)
 
 #define SIZEOF_SMS 80
 #define SIZEOF_SMS_SENDER 18
-void smsParse(int8_t NumSMS)
+// don't inline, or else the buffers get put above the stack
+void __attribute__ ((noinline)) smsParse(int8_t NumSMS)
 {
 		char smsBuffer[SIZEOF_SMS];
 		char smsSender[SIZEOF_SMS_SENDER];
@@ -254,7 +256,7 @@ void smsParse(int8_t NumSMS)
         fona.sendSMS(smsSender, smsBuffer);  //  Tell the sender what you've done
         Serial.println (F("XBee turned on by SMS."));
         return;
-    }
+    } else
 
     // FOTAPASSWD <filename> <filesize>
     if (strncmp_P(smsBuffer, (prog_char*)F(FOTAPASSWORD), sizeof(FOTAPASSWORD)-1) == 0) //  FOTA password...
@@ -296,7 +298,7 @@ void smsParse(int8_t NumSMS)
         }
         fona.sendSMS(smsSender, smsBuffer);  // return file stat, status
         */
-    }
+    } else
 
     // FLASHPASSWD <filename>
     if (strncmp_P(smsBuffer, (prog_char*)F(FLASHPASSWORD), sizeof(FLASHPASSWORD)-1) == 0) //  FOTA password...
@@ -306,7 +308,7 @@ void smsParse(int8_t NumSMS)
 
         eepromWrite();
         reflash();
-    }
+    } else
 
     // PINGPASSWORD
     if (strcmp_P(smsBuffer, (prog_char*)F(PINGPASSWORD)) == 0)        //  PING password...
@@ -316,7 +318,7 @@ void smsParse(int8_t NumSMS)
 
         /*
         sprintf_P(smsBuffer, (prog_char *)F(DEVICE " v:%d c:%d h:%d/" STR(SENSOR_HEIGHT)),
-          batteryRead(), solarCharging(), sonarRead());
+          batteryRead(), solarVoltage(), sonarRead());
         fona.sendSMS(smsSender, smsBuffer);
         */
         return;
