@@ -58,7 +58,7 @@ void setup (void)
 		{
 				Serial.println (F("Low power sleep"));
 				Serial.flush();
-				digitalWrite (BEEPIN, HIGH);      //  Make sure XBee is powered off
+				XBeeOff();
 				digitalWrite (RANGE, LOW);        //  Make sure sonar is off
 #ifdef STALKERv31
         //digitalWrite (BUS_PWR, LOW);   //  Peripheral bus off
@@ -155,7 +155,7 @@ void upload(int16_t distance, boolean resetClock)
   // At this point the measured distance is the result of multiple sets of readings,
   // and within each set, up to 75% of individual readings may be rejected as invalid.
   // If the result is STILL an invalid distance, we report the last-
-  // known-good reading to EWS, in order to avoid triggering alerts, etc,
+  // known-good reading to EWS, in order to avoid triggering spurious alerts, etc,
   // but post the failed reading to dweet, for diagnostics.
   if ( sonarValidReading(distance) ) {
     Serial.print("setting last known good: ");
@@ -186,7 +186,8 @@ void upload(int16_t distance, boolean resetClock)
 
     status &= dweetPostStatus(distance, solarV, voltage);
 
-    // reset fona if upload failed, so SMS works
+    // if the upload failed the fona can be left in an undefined state,
+    // so we reboot it here to ensure SMS works
     if (!status)
     {
       fonaOff(); wait(2000); fonaOn();
@@ -205,9 +206,8 @@ void upload(int16_t distance, boolean resetClock)
 
 
 // Don't allow ewsPost() to be inlined, as the compiler will also attempt to optimize stack
-// allocation, and ends up swallowing an extra ~128 bytes at the top of the stack.
-// ie it moves the beginning of the stack (as seen in setup()) down ~128 bytes,
-// leaving the rest of the app short of ram
+// allocation, and ends up preallocating at the top of the stack. ie it moves the beginning
+// of the stack (as seen in setup()) down ~200 bytes, leaving the rest of the app short of ram
 boolean __attribute__ ((noinline)) ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;

@@ -21,6 +21,11 @@ void XBeeOn ()
     digitalWrite (BEEPIN, xBeeState);
 }
 
+void XBeeOff ()
+{
+    digitalWrite (BEEPIN, HIGH);
+}
+
 
 // Generate a message stating XBee shutoff time
 void XBeeOnMessage(char *buffer)

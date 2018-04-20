@@ -247,9 +247,7 @@ void ftpEnd(void)
 }
 
 
-/*
- * Fetch firmware from FTP server to FONA's internal filesystem
- */
+// Fetch firmware from FTP server to FONA's internal filesystem
 boolean ftpGet(void)
 {
   // configure FTP
