@@ -14,6 +14,7 @@ void loop(void);
 void upload(int16_t, boolean);
 boolean dmisPost(int, boolean,  uint16_t);
 boolean ews1294Post (int, boolean, uint16_t);
+boolean dweetPostID (void);
 boolean dweetPostStatus (int, uint16_t, uint16_t);
 boolean dweetPostFota (boolean);
 boolean dweetPost (PROGMEM char*, char *);

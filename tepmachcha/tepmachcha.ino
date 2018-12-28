@@ -82,7 +82,8 @@ void setup (void)
 #endif
       clockSet();
 
-      dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
+      //dweetPostStatus(sonarRead(), solarVoltage(), batteryRead());
+      dweetPostID();
     }
     fonaOff();
 
@@ -207,7 +208,7 @@ void upload(int16_t distance, boolean resetClock)
 
 // Don't allow ewsPost() to be inlined, as the compiler will also attempt to optimize stack
 // allocation, and ends up preallocating at the top of the stack. ie it moves the beginning
-// of the stack (as seen in setup()) down ~200 bytes, leaving the rest of the app short of ram
+// of the stack (as seen in setup()) down ~200 bytes, leaving the rest of the app short of RAM
 boolean __attribute__ ((noinline)) ews1294Post (int16_t streamHeight, boolean solar, uint16_t voltage)
 {
     uint16_t status_code = 0;
@@ -331,6 +332,17 @@ boolean dmisPost (int16_t streamHeight, boolean solar, uint16_t voltage)
     return (statusCode == 201);
 }
 
+
+boolean dweetPostID()
+{
+    char json[136];
+
+    sprintf_P(json,
+      (prog_char*)F("{\"device\":\"%S\",\"freeRam\":%d}"),
+        DEVICE_STR,
+        freeRam());
+    return dweetPost((prog_char*)F(DWEETDEVICE_ID), json);
+}
 
 boolean dweetPostStatus(int16_t distance, uint16_t solar, uint16_t voltage)
 {

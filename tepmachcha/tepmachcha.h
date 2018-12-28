@@ -68,7 +68,8 @@
 
 // Device string includes date and time; helps identify version
 // Note: C compiler concatenates adjacent strings
-#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
+//#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm"
+#define DEVICE "Tepmachcha v" VERSION " " __DATE__ " " __TIME__ " ID:" EWSDEVICE_ID " " STR(SENSOR_HEIGHT) "cm " STR(SENSOR_MIN) "-" STR(SENSOR_MAX)
 
 // tepmachcha
 extern const char DEVICE_STR[] PROGMEM;

@@ -15,9 +15,7 @@ void sort (int16_t *a, uint8_t n)
     for (uint8_t j = i; j >= 1 && a[j] < a[j-1]; j--)
     {
       // swap (j, j-1)
-      int16_t tmp = a[j];
-      a[j] = a[j-1];
-      a[j-1] = tmp;
+      int16_t tmp = a[j]; a[j] = a[j-1]; a[j-1] = tmp;
     }
   }
 }
@@ -42,7 +40,7 @@ int16_t mode (int16_t *sample, uint8_t n)
         max_count = count;
         mode = sample[i];
       }
-      else if (count == max_count)  // no sequence (count == 1), or bimodal
+      else if (count == max_count)  // no sequence found (count == 1), or bimodal
       {
         mode = sample[(n/2)];       // use median
       }

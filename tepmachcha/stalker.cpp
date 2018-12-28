@@ -70,8 +70,13 @@ uint16_t batteryRead(void)
 //
 boolean solarCharging(uint16_t solar)
 {
+    // charging, 3.3v analogue ref
+#ifdef STALKERv31
     // despite calcs above, measurements show voltage of ~0.51 when charging
-    return ( solar > 160 && solar <= 250 );    // charging, 3.3v analogue ref
+    return ( solar > 160 && solar <= 250 );
+#else
+    return ( solar > 180 && solar <= 225 );
+#endif
 }
 
 uint16_t solarVoltage(void)
